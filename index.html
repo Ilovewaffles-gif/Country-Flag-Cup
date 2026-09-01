@@ -2,119 +2,110 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>FLAG ARENA WORLD CHAMPIONSHIP — 24/7 Broadcast</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
 <style>
   :root{
-    --navy-0:#070c16; --navy-1:#0c1526; --navy-2:#131f36; --navy-3:#1b2b48;
+    --navy-0:#070c16; --navy-1:#0c1526; --navy-2:#131f36;
     --gold:#e8b94b; --gold-dim:#8a733a; --white:#eef2f8; --mist:#94a3c2;
     --red:#e4483c; --green:#3ecf8e; --shadow:rgba(0,0,0,.5);
   }
   *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;height:100%;}
+  html,body{margin:0;padding:0;height:100%;overflow:hidden;}
   body{
     background:
       radial-gradient(ellipse 1200px 600px at 50% -10%, rgba(232,185,75,.08), transparent 60%),
       radial-gradient(ellipse 900px 900px at 85% 110%, rgba(62,207,142,.05), transparent 55%),
       var(--navy-0);
-    color:var(--white); font-family:'Inter',sans-serif; min-height:100%;
+    color:var(--white); font-family:'Inter',sans-serif; height:100%;
   }
   .display{font-family:'Teko',sans-serif; letter-spacing:.02em;}
-  .shell{max-width:1440px; margin:0 auto; padding:16px 16px 40px;}
+
+  .shell{
+    height:100%; max-width:1100px; margin:0 auto;
+    display:flex; flex-direction:column; gap:7px;
+    padding:8px 10px; overflow:hidden;
+  }
 
   /* ---------- TOP BAR ---------- */
   .topbar{
-    display:flex; align-items:center; gap:16px; flex-wrap:wrap;
-    padding:12px 18px; margin-bottom:10px;
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap; flex-shrink:0;
+    padding:6px 12px; border-radius:10px;
     background:linear-gradient(180deg, var(--navy-2), var(--navy-1));
-    border:1px solid #23324f; border-radius:14px;
-    box-shadow:0 10px 30px var(--shadow);
+    border:1px solid #23324f; box-shadow:0 6px 18px var(--shadow);
   }
   .live-badge{
-    display:flex; align-items:center; gap:6px; padding:5px 10px; border-radius:20px;
+    display:flex; align-items:center; gap:5px; padding:3px 8px; border-radius:16px;
     background:rgba(228,72,60,.15); border:1px solid rgba(228,72,60,.5);
-    font-size:11px; font-weight:800; letter-spacing:.12em; color:#ff8b7f;
+    font-size:9.5px; font-weight:800; letter-spacing:.1em; color:#ff8b7f; flex-shrink:0;
   }
-  .live-dot{width:7px; height:7px; border-radius:50%; background:var(--red); animation:pulse 1.4s infinite;}
+  .live-dot{width:6px; height:6px; border-radius:50%; background:var(--red); animation:pulse 1.4s infinite;}
   @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.25;}}
-  .brand{display:flex; align-items:center; gap:8px;}
-  .brand .mark{width:28px;height:28px;border-radius:7px;
-    background:conic-gradient(from 180deg, var(--gold), var(--red) 33%, var(--green) 66%, var(--gold));
-    box-shadow:inset 0 0 0 2px rgba(0,0,0,.35); flex-shrink:0;}
-  .brand h1{font-size:24px; margin:0; font-weight:700; text-transform:uppercase; line-height:1;}
-  .brand h1 span{color:var(--gold);}
+  .brand{font-size:12.5px; font-weight:700; text-transform:uppercase; color:var(--mist); white-space:nowrap;}
+  .brand span{color:var(--gold);}
 
-  .stage-track{display:flex; align-items:center; gap:6px; margin-left:auto; flex-wrap:wrap;}
-  .stage-pip{
-    font-size:10px; letter-spacing:.06em; text-transform:uppercase; font-weight:700;
-    padding:5px 9px; border-radius:7px; color:var(--mist); background:#0e1830; border:1px solid #23324f;
-    white-space:nowrap;
+  .stat-boxes{display:flex; gap:6px; margin-left:auto;}
+  .stat-box{
+    text-align:center; padding:3px 12px; border-radius:7px; background:#0e1830; border:1px solid #23324f;
   }
-  .stage-pip.done{color:var(--green); border-color:rgba(62,207,142,.35);}
-  .stage-pip.active{color:#241a02; background:var(--gold); border-color:var(--gold);}
-
-  .subbar{
-    display:flex; flex-direction:column; gap:2px; padding:10px 18px; margin-bottom:14px;
-    background:var(--navy-1); border:1px solid #1c2a45; border-radius:12px;
+  .stat-box .lbl{font-size:8.5px; color:var(--mist); letter-spacing:.1em; text-transform:uppercase;}
+  .stat-box .val{font-family:'Teko',sans-serif; font-size:18px; font-weight:600; color:var(--gold); line-height:1.1; white-space:nowrap;}
+  .sound-toggle{
+    flex-shrink:0; width:28px; height:28px; border-radius:50%; margin-left:6px;
+    background:#0e1830; border:1px solid #23324f; color:var(--gold); font-size:13px;
+    cursor:pointer; display:flex; align-items:center; justify-content:center;
   }
-  .subbar .stage-title{font-family:'Teko',sans-serif; font-size:22px; font-weight:600; color:var(--white);}
-  .subbar .ticker{font-size:12px; color:var(--gold); min-height:16px;}
+  .sound-toggle:active{transform:scale(.92);}
 
-  /* ---------- GRID LAYOUT ---------- */
-  .grid{display:grid; grid-template-columns:260px 1fr 300px; gap:14px; align-items:start;}
-  @media (max-width:1100px){ .grid{grid-template-columns:1fr;} }
-
-  .panel{
-    background:linear-gradient(180deg, var(--navy-2), var(--navy-1));
-    border:1px solid #23324f; border-radius:14px; padding:14px;
-    box-shadow:0 10px 26px var(--shadow); margin-bottom:14px;
+  /* ---------- PANELS ROW ---------- */
+  .panels-row{display:flex; gap:7px; flex-shrink:0;}
+  .mini-panel{
+    flex:1; min-width:0; background:linear-gradient(180deg, var(--navy-2), var(--navy-1));
+    border:1px solid #23324f; border-radius:10px; padding:7px 9px;
+    display:flex; flex-direction:column; box-shadow:0 6px 16px var(--shadow);
   }
-  .panel h3{
-    margin:0 0 10px; font-family:'Teko',sans-serif; font-size:19px; font-weight:600;
-    text-transform:uppercase; letter-spacing:.03em; display:flex; align-items:center; gap:6px;
-    color:var(--white);
+  .mp-head{display:flex; align-items:center; gap:5px; margin-bottom:5px; flex-shrink:0;}
+  .mp-head h4{margin:0; font-family:'Teko',sans-serif; font-size:14px; font-weight:600; text-transform:uppercase; letter-spacing:.02em; white-space:nowrap;}
+  .mp-tag{margin-left:auto; font-size:8.5px; font-weight:800; letter-spacing:.05em; text-transform:uppercase;
+    padding:2px 6px; border-radius:9px; background:rgba(232,185,75,.15); color:var(--gold); white-space:nowrap;}
+  .mp-body{overflow-y:auto; max-height:104px; font-size:10.5px;}
+  .mp-body::-webkit-scrollbar{width:4px;}
+  .mp-body::-webkit-scrollbar-thumb{background:#2b3c5c; border-radius:3px;}
+
+  .row-line{display:flex; align-items:center; gap:5px; padding:3px 2px; border-bottom:1px solid #1c2a45;}
+  .row-line:last-child{border-bottom:none;}
+  .row-line img{width:15px; height:11px; object-fit:cover; border-radius:2px; flex-shrink:0;}
+  .row-line .nm{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .row-line .nm.lose{opacity:.4; text-decoration:line-through;}
+  .row-line .vs{color:var(--mist); font-size:9px; flex-shrink:0;}
+  .row-line .tick{font-size:9.5px; flex-shrink:0; width:12px; text-align:center;}
+  .row-line .qta{font-size:9px; color:var(--mist); flex-shrink:0;}
+  .row-line .badge{font-size:9.5px; font-weight:800; color:#241a02; background:var(--gold); border-radius:5px; padding:1px 5px; flex-shrink:0;}
+  .row-line .rk{width:12px; font-size:9.5px; color:var(--mist); font-weight:700; flex-shrink:0;}
+
+  .alive-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(20px,1fr)); gap:3px;}
+  .alive-grid img{width:100%; aspect-ratio:4/3; object-fit:cover; border-radius:2px; box-shadow:0 0 0 1px #23324f;}
+
+  /* ---------- MATCH TITLE ---------- */
+  .match-title-wrap{text-align:center; flex-shrink:0;}
+  .match-title{
+    font-family:'Teko',sans-serif; font-weight:600; font-size:clamp(18px,3.4vw,32px);
+    letter-spacing:.03em; text-transform:uppercase; line-height:1.05;
+    background:linear-gradient(90deg,#eef2f8,var(--gold));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
   }
-  .panel h3 .count{margin-left:auto; font-size:12px; color:var(--gold); font-family:'Inter',sans-serif; font-weight:700;}
-
-  /* Highest wins */
-  .wins-row{display:flex; align-items:center; gap:8px; padding:6px 4px; border-bottom:1px solid #1c2a45;}
-  .wins-row:last-child{border-bottom:none;}
-  .wins-rank{width:16px; font-size:11px; color:var(--mist); font-weight:700; flex-shrink:0;}
-  .wins-row img{width:22px; height:16px; object-fit:cover; border-radius:2px; flex-shrink:0;}
-  .wins-name{font-size:11.5px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;}
-  .wins-badge{font-size:11px; font-weight:800; color:#241a02; background:var(--gold); border-radius:6px; padding:2px 6px; flex-shrink:0;}
-
-  /* Alive grid */
-  .alive-grid{
-    display:grid; grid-template-columns:repeat(auto-fill, minmax(26px,1fr)); gap:4px;
-    max-height:230px; overflow-y:auto; padding-right:2px;
-  }
-  .alive-grid img{width:100%; aspect-ratio:4/3; object-fit:cover; border-radius:3px; box-shadow:0 0 0 1px #23324f;}
-  .alive-grid::-webkit-scrollbar{width:5px;}
-  .alive-grid::-webkit-scrollbar-thumb{background:#2b3c5c; border-radius:3px;}
-
-  /* Fixtures */
-  .fixture-row{display:flex; align-items:center; gap:6px; padding:6px 4px; border-bottom:1px solid #1c2a45; font-size:11.5px;}
-  .fixture-row:last-child{border-bottom:none;}
-  .fixture-row img{width:18px; height:13px; object-fit:cover; border-radius:2px; flex-shrink:0;}
-  .fixture-side{display:flex; align-items:center; gap:5px; flex:1; min-width:0;}
-  .fixture-side span{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  .fixture-side.loser{opacity:.4; text-decoration:line-through;}
-  .fixture-vs{color:var(--mist); font-size:10px; flex-shrink:0;}
-  .fixture-status{width:14px; text-align:center; flex-shrink:0; font-size:11px;}
-  .fixture-quota{font-size:10px; color:var(--mist); margin-left:auto; flex-shrink:0;}
+  .ticker{font-size:10.5px; color:var(--mist); min-height:13px; margin-top:1px;}
 
   /* ---------- ARENA ---------- */
+  .arena-outer{flex:1; min-height:0; display:flex; align-items:center; justify-content:center;}
   .arena-wrap{
-    position:relative; width:100%; aspect-ratio:1/1;
+    position:relative; height:100%; width:auto; aspect-ratio:1/1; max-width:100%; max-height:100%;
     border-radius:20px; overflow:hidden;
     background:radial-gradient(circle at 50% 42%, #16233c 0%, #0d1729 55%, #070c16 100%);
-    border:1px solid #23324f;
-    box-shadow:0 20px 50px var(--shadow), inset 0 0 80px rgba(0,0,0,.6);
-    margin-bottom:14px;
+    border:1px solid #23324f; box-shadow:0 16px 40px var(--shadow), inset 0 0 80px rgba(0,0,0,.6);
   }
   canvas{display:block; width:100%; height:100%;}
 
@@ -123,117 +114,95 @@
     text-align:center; pointer-events:none; opacity:0; transition:opacity .25s ease, transform .25s ease; z-index:5;
   }
   .banner.show{opacity:1; transform:translate(-50%,-50%) scale(1);}
-  .banner .display{font-size:52px; font-weight:700; color:var(--white); text-transform:uppercase; text-shadow:0 6px 24px rgba(0,0,0,.6);}
-  .banner .sub{font-size:12px; letter-spacing:.2em; color:var(--gold); text-transform:uppercase; margin-top:-8px;}
+  .banner .display{font-size:clamp(28px,6vw,52px); font-weight:700; color:var(--white); text-transform:uppercase; text-shadow:0 6px 24px rgba(0,0,0,.6);}
+  .banner .sub{font-size:11px; letter-spacing:.2em; color:var(--gold); text-transform:uppercase; margin-top:-6px;}
 
   .hype-badge{
-    position:absolute; top:12px; right:12px; z-index:4; display:flex; align-items:center; gap:6px;
-    background:rgba(7,12,22,.6); border:1px solid #2b3c5c; border-radius:20px; padding:5px 10px;
+    position:absolute; top:10px; right:10px; z-index:4; display:flex; align-items:center; gap:5px;
+    background:rgba(7,12,22,.6); border:1px solid #2b3c5c; border-radius:16px; padding:4px 8px;
   }
-  .hype-track{width:70px; height:6px; border-radius:4px; background:#0a1220; overflow:hidden;}
+  .hype-track{width:52px; height:5px; border-radius:4px; background:#0a1220; overflow:hidden;}
   .hype-fill{height:100%; width:0%; background:linear-gradient(90deg, var(--gold), var(--red)); transition:width .18s ease;}
-  .hype-lbl{font-size:9.5px; color:var(--mist); letter-spacing:.08em; text-transform:uppercase;}
+  .hype-lbl{font-size:8px; color:var(--mist); letter-spacing:.06em; text-transform:uppercase;}
 
   .overlay{
     position:absolute; inset:0; z-index:10; background:rgba(7,12,22,.9); backdrop-filter:blur(6px);
-    display:flex; align-items:center; justify-content:center; padding:24px;
+    display:flex; align-items:center; justify-content:center; padding:20px;
   }
   .overlay.hidden{display:none;}
-  .card{width:100%; max-width:480px; text-align:center;}
-  .card h2{font-family:'Teko',sans-serif; font-size:40px; font-weight:700; margin:0 0 4px; text-transform:uppercase;}
-  .card p.lede{color:var(--mist); font-size:12.5px; margin:0 0 6px;}
-  .champ-flag{width:130px; height:90px; object-fit:cover; border-radius:10px; margin:0 auto 14px;
+  .card{width:100%; max-width:420px; text-align:center;}
+  .card h2{font-family:'Teko',sans-serif; font-size:clamp(28px,6vw,40px); font-weight:700; margin:0 0 4px; text-transform:uppercase;}
+  .card p.lede{color:var(--mist); font-size:11.5px; margin:0 0 4px;}
+  .champ-flag{width:110px; height:76px; object-fit:cover; border-radius:9px; margin:0 auto 12px;
     box-shadow:0 12px 34px rgba(0,0,0,.5), 0 0 0 4px var(--navy-2), 0 0 0 6px var(--gold);}
 
-  /* ---------- ACTIVE ROSTER ---------- */
-  .active-roster{display:grid; grid-template-columns:repeat(auto-fill, minmax(120px,1fr)); gap:8px;}
-  .fighter-card{
-    background:linear-gradient(180deg, var(--navy-2), var(--navy-1)); border:1px solid #23324f;
-    border-radius:10px; padding:7px; display:flex; flex-direction:column; gap:5px;
-    transition:opacity .3s ease, filter .3s ease;
+  @keyframes fall{to{transform:translateY(420px) rotate(360deg); opacity:0;}}
+
+  @media (max-width:640px){
+    .panels-row{flex-direction:row;}
+    .mini-panel{padding:5px 6px;}
+    .mp-body{max-height:80px;}
+    .stat-box{padding:3px 7px;}
   }
-  .fighter-card.dead{opacity:.3; filter:grayscale(1);}
-  .fc-top{display:flex; align-items:center; gap:6px;}
-  .fc-top img{width:22px; height:16px; object-fit:cover; border-radius:2px; flex-shrink:0;}
-  .fc-name{font-size:10.5px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  .hp-track{height:5px; border-radius:4px; background:#0a1220; overflow:hidden; box-shadow:inset 0 0 0 1px #23324f;}
-  .hp-fill{height:100%; width:100%; background:linear-gradient(90deg, var(--green), #8fe0b8); transition:width .15s ease, background .2s ease;}
-
-  footer{text-align:center; color:var(--mist); font-size:10.5px; margin-top:18px; line-height:1.7;}
-  footer b{color:var(--gold);}
-
-  @keyframes fall{to{transform:translateY(650px) rotate(360deg); opacity:0;}}
 </style>
 </head>
 <body>
 <div class="shell">
 
   <div class="topbar">
-    <div class="live-badge"><div class="live-dot"></div>ON AIR</div>
-    <div class="brand"><div class="mark"></div><h1>Flag<span>Arena</span> World Championship</h1></div>
-    <div class="stage-track" id="stageTrack"></div>
+    <div class="live-badge"><div class="live-dot"></div>LIVE</div>
+    <div class="brand">Flag<span>Arena</span> World Championship</div>
+    <div class="stat-boxes">
+      <div class="stat-box"><div class="lbl">Cup</div><div class="val" id="cupNum">1</div></div>
+      <div class="stat-box"><div class="lbl">Stage</div><div class="val" id="stageVal" style="font-size:13px;">Loading</div></div>
+      <div class="stat-box"><div class="lbl">Match</div><div class="val" id="matchNum">0/37</div></div>
+    </div>
+    <button id="soundToggle" class="sound-toggle" title="Toggle sound">🔊</button>
   </div>
 
-  <div class="subbar">
-    <div class="stage-title" id="stageTitle">Booting broadcast…</div>
-    <div class="ticker" id="tickerText">Loading the world's flags…</div>
+  <div class="panels-row">
+    <div class="mini-panel">
+      <div class="mp-head"><h4>🏆 Schedule</h4><span class="mp-tag" id="scheduleTag">Play-In</span></div>
+      <div class="mp-body" id="fixtureList"></div>
+    </div>
+    <div class="mini-panel">
+      <div class="mp-head"><h4>🥇 Most Wins</h4><span class="mp-tag">All-Time</span></div>
+      <div class="mp-body" id="winsList"></div>
+    </div>
+    <div class="mini-panel">
+      <div class="mp-head"><h4>❌ Alive</h4><span class="mp-tag" id="aliveCount">88</span></div>
+      <div class="mp-body"><div class="alive-grid" id="aliveGrid"></div></div>
+    </div>
   </div>
 
-  <div class="grid">
-    <!-- LEFT: Highest Wins -->
-    <div class="side-left">
-      <div class="panel">
-        <h3>🏆 Highest Wins</h3>
-        <div id="winsList"></div>
-      </div>
-      <div class="panel">
-        <h3>👑 Past Champions</h3>
-        <div id="champHistory" style="font-size:11.5px; color:var(--mist);">None crowned yet this broadcast.</div>
-      </div>
-    </div>
+  <div class="match-title-wrap">
+    <div class="match-title" id="matchTitle">LOADING FLAGS…</div>
+    <div class="ticker" id="tickerText">Preparing the world championship…</div>
+  </div>
 
-    <!-- CENTER: Arena -->
-    <div class="center-col">
-      <div class="arena-wrap" id="arenaWrap">
-        <canvas id="arena"></canvas>
-        <div class="hype-badge">
-          <span class="hype-lbl">HYPE</span>
-          <div class="hype-track"><div class="hype-fill" id="hypeFill"></div></div>
-        </div>
-        <div class="banner" id="banner">
-          <div class="display" id="bannerText">LOADING</div>
-          <div class="sub" id="bannerSub">Please wait</div>
-        </div>
-        <div class="overlay hidden" id="champOverlay">
-          <div class="card">
-            <div class="sub" style="color:var(--gold); letter-spacing:.3em; font-size:12px; margin-bottom:10px;">WORLD CHAMPION</div>
-            <img class="champ-flag" id="champFlag" src="" alt="">
-            <h2 id="champName">—</h2>
-            <p class="lede" id="champStat">—</p>
-            <p class="lede">Next tournament begins shortly…</p>
-          </div>
-        </div>
+  <div class="arena-outer">
+    <div class="arena-wrap" id="arenaWrap">
+      <canvas id="arena"></canvas>
+      <div class="hype-badge">
+        <span class="hype-lbl">Hype</span>
+        <div class="hype-track"><div class="hype-fill" id="hypeFill"></div></div>
       </div>
-      <div class="active-roster" id="activeRoster"></div>
-    </div>
-
-    <!-- RIGHT: Alive + Fixtures -->
-    <div class="side-right">
-      <div class="panel">
-        <h3>🟢 Alive <span class="count" id="aliveCount">88</span></h3>
-        <div class="alive-grid" id="aliveGrid"></div>
+      <div class="banner" id="banner">
+        <div class="display" id="bannerText">LOADING</div>
+        <div class="sub" id="bannerSub">Please wait</div>
       </div>
-      <div class="panel">
-        <h3 id="fixtureTitle">⏭ Play-In Order</h3>
-        <div id="fixtureList"></div>
+      <div class="overlay hidden" id="champOverlay">
+        <div class="card">
+          <div class="sub" style="color:var(--gold); letter-spacing:.3em; font-size:11px; margin-bottom:8px;">WORLD CHAMPION</div>
+          <img class="champ-flag" id="champFlag" src="" alt="">
+          <h2 id="champName">—</h2>
+          <p class="lede" id="champStat">—</p>
+          <p class="lede">Next tournament begins shortly…</p>
+        </div>
       </div>
     </div>
   </div>
 
-  <footer>
-    88 nations · 6 continental play-ins seed 32 qualifiers (bigger continents send more flags) · single-elimination knockout from Round of 32 to the Final.<br>
-    Fully autonomous broadcast — <b>no interaction required</b>. Runs on a continuous loop.
-  </footer>
 </div>
 
 <script>
@@ -276,6 +245,8 @@
     ]}
   ];
   const flagUrl = (code,size) => `https://flagcdn.com/${size||'w80'}/${code}.png`;
+  const TOTAL_MATCHES = CONTINENTS.length + 31; // 6 play-ins + 31 bracket matches
+  const MAX_HP = 300; // 3x the original pool so play-ins last well beyond a few seconds
 
   // =========================================================
   // FIGHTER REGISTRY
@@ -284,17 +255,17 @@
     this.code = code; this.name = name; this.continent = continent;
     this.img = new Image(); this.img.crossOrigin = 'anonymous'; this.img.src = flagUrl(code,'w160');
     this.iconSmall = flagUrl(code,'w40');
-    this.hp = 100; this.alive = true; this.status = 'idle'; // idle | battling | qualified | eliminated | champion
+    this.hp = MAX_HP; this.alive = true; this.status = 'idle';
     this.winCount = 0; this.flashT = 0; this.body = null;
   }
   Fighter.prototype.reset = function(){
-    this.hp = 100; this.alive = true; this.status = 'idle'; this.winCount = 0; this.flashT = 0; this.body = null;
+    this.hp = MAX_HP; this.alive = true; this.status = 'idle'; this.winCount = 0; this.flashT = 0; this.body = null;
   };
   Fighter.prototype.spawnBody = function(x,y){
-    this.hp = 100; this.alive = true; this.flashT = 0;
+    this.hp = MAX_HP; this.alive = true; this.flashT = 0;
     const angle = Math.random()*Math.PI*2, speed = 2.6 + Math.random()*2.2;
     this.body = Bodies.circle(x, y, currentFighterR, {
-      restitution:0.92, friction:0.001, frictionAir:0.0022, density:0.002,
+      restitution:0.9, friction:0.001, frictionAir:0.0018, density:0.002,
       label:'fighter:'+this.code
     });
     Body.setVelocity(this.body, {x:Math.cos(angle)*speed, y:Math.sin(angle)*speed});
@@ -307,14 +278,113 @@
 
   const registry = {};
   CONTINENTS.forEach(cont=>{
-    cont.list.forEach(([code,name])=>{
-      registry[code] = new Fighter(code, name, cont.name);
-    });
+    cont.list.forEach(([code,name])=>{ registry[code] = new Fighter(code, name, cont.name); });
   });
   const ALL_FIGHTERS = Object.values(registry);
 
   // =========================================================
-  // MATTER.JS SETUP
+  // SOUND — procedural SFX (Web Audio) + announcer voice (Speech Synthesis)
+  // Both are generated in-browser, so no audio files need to be hosted.
+  // =========================================================
+  let soundOn = true;
+  let audioCtx = null;
+  function getCtx(){
+    if(!window.AudioContext && !window.webkitAudioContext) return null;
+    if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    return audioCtx;
+  }
+  function tone(freq, dur, type, gain, delay, endFreq){
+    if(!soundOn) return;
+    const ctx = getCtx(); if(!ctx) return;
+    if(ctx.state === 'suspended') ctx.resume();
+    const t0 = ctx.currentTime + (delay||0);
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = type || 'sine';
+    osc.frequency.setValueAtTime(freq, t0);
+    if(endFreq) osc.frequency.exponentialRampToValueAtTime(Math.max(1,endFreq), t0+dur);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.linearRampToValueAtTime(gain||0.15, t0+0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0+dur);
+    osc.connect(g); g.connect(ctx.destination);
+    osc.start(t0); osc.stop(t0+dur+0.03);
+  }
+  let lastHitSfx = 0;
+  function sfxHit(){
+    const now = performance.now();
+    if(now - lastHitSfx < 90) return; // throttle so crowded rumbles don't wall-of-noise
+    lastHitSfx = now;
+    tone(120+Math.random()*50, 0.06, 'square', 0.07);
+  }
+  function sfxEliminate(){ tone(420, 0.26, 'sawtooth', 0.11, 0, 90); }
+  function sfxStart(){ tone(440,0.1,'sine',0.09); tone(660,0.12,'sine',0.09,0.1); }
+  function sfxWin(){ tone(660,0.1,'triangle',0.11); tone(880,0.16,'triangle',0.11,0.1); }
+  function sfxChampion(){
+    tone(523,0.16,'triangle',0.13); tone(659,0.16,'triangle',0.13,0.16);
+    tone(784,0.16,'triangle',0.13,0.32); tone(1046,0.34,'triangle',0.15,0.48);
+  }
+
+  // ---- Announcer voice ----
+  let voices = [], chosenVoice = null, unlockedSpeech = false;
+  const speechSupported = 'speechSynthesis' in window;
+  function loadVoices(){
+    if(!speechSupported) return;
+    voices = speechSynthesis.getVoices();
+    if(voices.length) chosenVoice = voices.find(v=>/en-?(US|GB)/i.test(v.lang)) || voices[0];
+  }
+  if(speechSupported){
+    loadVoices();
+    speechSynthesis.onvoiceschanged = loadVoices;
+  }
+  let speechQueue = [], isSpeaking = false;
+  function pumpSpeechQueue(){
+    if(!speechSupported || isSpeaking || speechQueue.length===0) return;
+    const text = speechQueue.shift();
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = 1.05; u.pitch = 0.92; u.volume = 1;
+    if(chosenVoice) u.voice = chosenVoice;
+    u.onend = ()=>{ isSpeaking=false; pumpSpeechQueue(); };
+    u.onerror = ()=>{ isSpeaking=false; pumpSpeechQueue(); };
+    isSpeaking = true;
+    speechSynthesis.speak(u);
+  }
+  function announce(text){
+    if(!soundOn || !speechSupported) return;
+    speechQueue.push(text);
+    if(speechQueue.length > 3) speechQueue.shift(); // don't let a backlog build up and lag behind the action
+    pumpSpeechQueue();
+  }
+
+  function unlockAudio(){
+    try{ const ctx = getCtx(); if(ctx && ctx.state==='suspended') ctx.resume(); }catch(e){}
+    try{
+      if(speechSupported && !unlockedSpeech){
+        const u = new SpeechSynthesisUtterance(' ');
+        u.volume = 0;
+        speechSynthesis.speak(u);
+        unlockedSpeech = true;
+      }
+    }catch(e){}
+  }
+  document.addEventListener('pointerdown', function onFirstInteract(){
+    unlockAudio();
+    document.removeEventListener('pointerdown', onFirstInteract);
+  }, {once:true});
+
+  const soundToggleBtn = document.getElementById('soundToggle');
+  soundToggleBtn.addEventListener('click', ()=>{
+    soundOn = !soundOn;
+    soundToggleBtn.textContent = soundOn ? '🔊' : '🔇';
+    if(!soundOn){
+      if(speechSupported) speechSynthesis.cancel();
+      speechQueue = []; isSpeaking = false;
+    } else {
+      unlockAudio();
+    }
+  });
+
+  // =========================================================
+  // MATTER.JS SETUP  (no wall bodies — boundary handled manually each frame)
   // =========================================================
   const { Engine, World, Bodies, Body, Vector } = Matter;
   const engine = Engine.create();
@@ -322,42 +392,49 @@
 
   const SIZE = 800, CX = 400, CY = 400;
   let currentArenaR = 300, currentFighterR = 34;
-  let wallBodies = [];
 
   function arenaRadiusFor(n){ return Math.round(Math.min(372, 210 + n*8)); }
   function fighterRadiusFor(n){ return Math.round(Math.max(16, 46 - Math.max(0,n-2)*1.15)); }
 
-  function buildWalls(radius){
-    wallBodies.forEach(w=> World.remove(engine.world, w));
-    wallBodies = [];
-    const segs = 22, thickness = 24;
-    for(let i=0;i<segs;i++){
-      const a = (i/segs) * Math.PI*2;
-      const cx = CX + Math.cos(a) * (radius + thickness/2 - 2);
-      const cy = CY + Math.sin(a) * (radius + thickness/2 - 2);
-      const len = (2*Math.PI*radius)/segs * 1.35;
-      const wall = Bodies.rectangle(cx, cy, len, thickness, {
-        isStatic:true, angle:a+Math.PI/2, restitution:0.85, friction:0.02
-      });
-      wallBodies.push(wall);
-    }
-    World.add(engine.world, wallBodies);
-  }
-
   function setupArenaFor(n){
     currentArenaR = arenaRadiusFor(n);
     currentFighterR = fighterRadiusFor(n);
-    buildWalls(currentArenaR);
   }
 
   function spawnRing(list){
     const n = list.length;
     list.forEach((f,i)=>{
       const a = (i/n) * Math.PI*2 + (Math.random()-0.5)*0.2;
-      const rad = currentArenaR * (0.5 + Math.random()*0.15);
+      const rad = currentArenaR * (0.4 + Math.random()*0.25);
       f.status = 'battling';
       f.spawnBody(CX + Math.cos(a)*rad, CY + Math.sin(a)*rad);
     });
+  }
+
+  // Perfect circular boundary: reflect any fighter that pushes past the edge.
+  // Position is nudged slightly *inside* the true edge (buffer) so a fighter
+  // getting jostled by neighbours right at the wall doesn't re-trigger the
+  // bounce every frame and appear "stuck".
+  function containFighter(f){
+    if(!f.body || !f.alive) return;
+    const p = f.body.position;
+    const dx = p.x - CX, dy = p.y - CY;
+    const dist = Math.hypot(dx,dy) || 0.0001;
+    const maxDist = currentArenaR - currentFighterR;
+    if(dist > maxDist){
+      const nx = dx/dist, ny = dy/dist;
+      const inset = maxDist - 3;
+      Body.setPosition(f.body, {x: CX + nx*inset, y: CY + ny*inset});
+      const v = f.body.velocity;
+      const dot = v.x*nx + v.y*ny;
+      const rest = 0.9;
+      // Always send it back inward with a minimum kick, even if it arrived
+      // nearly at rest (e.g. after being pinned by neighbours).
+      const inward = Math.max(1.5, (1+rest)*dot);
+      Body.setVelocity(f.body, {x: v.x - inward*nx, y: v.y - inward*ny});
+      spawnBurst(f.body.position.x, f.body.position.y, '#3ecf8e', 4);
+      shake = Math.min(6, shake + 1.2);
+    }
   }
 
   // =========================================================
@@ -396,17 +473,14 @@
       if(fa && fb){
         const rv = Vector.sub(pair.bodyA.velocity, pair.bodyB.velocity);
         const speed = Vector.magnitude(rv);
-        const scale = activeFighters.length > 6 ? 1.35 : 1; // faster pace for big rumbles
-        const dmg = Math.max(3, Math.min(36, speed * 2.1 * scale));
+        const dmg = Math.max(3, Math.min(36, speed * 2.1));
         fa.hp -= dmg; fb.hp -= dmg;
         fa.flashT = 0.15; fb.flashT = 0.15;
         hype = Math.min(100, hype + 3);
         const mid = Vector.add(pair.bodyA.position, Vector.mult(Vector.sub(pair.bodyB.position,pair.bodyA.position), 0.5));
         spawnBurst(mid.x, mid.y, '#ffffff', Math.min(14, 4+speed));
         shake = Math.min(10, shake + speed*0.3);
-      } else if(fa || fb){
-        const f = fa || fb;
-        spawnBurst(f.body.position.x, f.body.position.y, '#3ecf8e', 3);
+        sfxHit();
       }
     });
   });
@@ -428,6 +502,26 @@
     }
   }
 
+  // Every fighter gets a gentle, continuous pull back toward the arena centre.
+  // This keeps play-in rumbles from piling up against the wall (which is what
+  // caused the "stuck" look) and keeps 1v1 duels centred in frame. It's weak
+  // enough that collisions and bounces still dominate the motion.
+  function applyCenterPull(){
+    const n = activeFighters.length;
+    activeFighters.forEach(f=>{
+      if(!f.alive || !f.body) return;
+      const dx = CX - f.body.position.x, dy = CY - f.body.position.y;
+      const dist = Math.hypot(dx,dy) || 1;
+      const nx = dx/dist, ny = dy/dist;
+      // Stronger pull the closer to the wall it is; a touch weaker overall
+      // for big rosters so the rumble still has room to spread out.
+      const edgeZone = dist > currentArenaR*0.55;
+      const base = n <= 2 ? 0.0020 : 0.0011;
+      const mag = edgeZone ? base : base*0.2;
+      Body.applyForce(f.body, f.body.position, {x:nx*mag, y:ny*mag});
+    });
+  }
+
   // =========================================================
   // UI HELPERS
   // =========================================================
@@ -441,20 +535,17 @@
     showBanner._t = setTimeout(()=> bannerEl.classList.remove('show'), dur||1300);
   }
 
-  const stageTitleEl = document.getElementById('stageTitle');
+  const stageValEl = document.getElementById('stageVal');
+  const matchNumEl = document.getElementById('matchNum');
+  const cupNumEl = document.getElementById('cupNum');
+  const matchTitleEl = document.getElementById('matchTitle');
   const tickerEl = document.getElementById('tickerText');
-  function setStageTitle(t){ stageTitleEl.textContent = t; }
+  function setStage(t){ stageValEl.textContent = t; }
+  function setMatchTitle(t){ matchTitleEl.textContent = t; }
   function logTicker(t){ tickerEl.textContent = t; }
 
-  const STAGES = ['Play-Ins','Round of 32','Round of 16','Quarterfinal','Semifinal','Final','Champion'];
-  const stageTrackEl = document.getElementById('stageTrack');
-  function renderStageTrack(activeIdx){
-    stageTrackEl.innerHTML = STAGES.map((s,i)=>{
-      const cls = i < activeIdx ? 'done' : (i === activeIdx ? 'active' : '');
-      return `<div class="stage-pip ${cls}">${s}</div>`;
-    }).join('');
-  }
-  renderStageTrack(0);
+  let matchIndex = 0, cupCount = 0;
+  function bumpMatchIndex(){ matchIndex++; matchNumEl.textContent = matchIndex + '/' + TOTAL_MATCHES; }
 
   function wait(ms){ return new Promise(r=> setTimeout(r, ms)); }
   function shuffle(arr){
@@ -468,29 +559,24 @@
     return pairs;
   }
   const roundNameFor = n => ({32:'Round of 32',16:'Round of 16',8:'Quarterfinal',4:'Semifinal',2:'Final'}[n] || (n+' remain'));
-  const roundStageIdx = n => ({32:1,16:2,8:3,4:4,2:5}[n] || 0);
 
   // ---- Panel rendering ----
-  let fixtureMode = 'playin'; // 'playin' | 'bracket'
+  let fixtureMode = 'playin';
   let continentStatus = CONTINENTS.map(c=>({...c, status:'upcoming', remain:c.list.length}));
-  let currentFixtures = []; // {a,b,status,winner}
+  let currentFixtures = [];
 
-  function refreshPanels(){
-    renderWins();
-    renderAlive();
-    renderFixtures();
-  }
+  function refreshPanels(){ renderWins(); renderAlive(); renderFixtures(); }
 
   function renderWins(){
     const top = [...ALL_FIGHTERS].filter(f=>f.winCount>0).sort((a,b)=>b.winCount-a.winCount).slice(0,10);
     const el = document.getElementById('winsList');
-    if(top.length === 0){ el.innerHTML = '<div style="font-size:11.5px;color:var(--mist);">No wins recorded yet.</div>'; return; }
+    if(top.length === 0){ el.innerHTML = '<div style="font-size:10.5px;color:var(--mist);">No wins yet.</div>'; return; }
     el.innerHTML = top.map((f,i)=>`
-      <div class="wins-row">
-        <div class="wins-rank">${i+1}</div>
+      <div class="row-line">
+        <div class="rk">${i+1}</div>
         <img src="${f.iconSmall}" alt="">
-        <div class="wins-name">${f.name}</div>
-        <div class="wins-badge">${f.winCount}</div>
+        <div class="nm">${f.name}</div>
+        <div class="badge">${f.winCount}</div>
       </div>`).join('');
   }
 
@@ -503,52 +589,32 @@
   }
 
   function renderFixtures(){
-    const titleEl = document.getElementById('fixtureTitle');
+    const tagEl = document.getElementById('scheduleTag');
     const listEl = document.getElementById('fixtureList');
     if(fixtureMode === 'playin'){
-      titleEl.textContent = '⏭ Play-In Order';
+      tagEl.textContent = 'Play-In';
       listEl.innerHTML = continentStatus.map(c=>{
         const icon = c.status==='done' ? '✅' : (c.status==='live' ? '🔴' : '⏳');
-        return `<div class="fixture-row">
-          <div class="fixture-side"><span>${c.name}</span></div>
-          <div class="fixture-quota">${c.status==='upcoming' ? c.list.length+' → '+c.quota : c.remain+' → '+c.quota}</div>
-          <div class="fixture-status">${icon}</div>
+        return `<div class="row-line">
+          <div class="nm">${c.name}</div>
+          <div class="qta">${c.status==='upcoming' ? c.list.length+'→'+c.quota : c.remain+'→'+c.quota}</div>
+          <div class="tick">${icon}</div>
         </div>`;
       }).join('');
     } else {
-      titleEl.textContent = '⏭ ' + (currentFixtures.length ? roundNameFor(currentFixtures.length*2) : '') + ' Fixtures';
+      tagEl.textContent = currentFixtures.length ? roundNameFor(currentFixtures.length*2) : 'Bracket';
       listEl.innerHTML = currentFixtures.map(fx=>{
         const icon = fx.status==='done' ? '✅' : (fx.status==='live' ? '🔴' : '⏳');
-        const aLose = fx.winner && fx.winner!==fx.a ? 'loser' : '';
-        const bLose = fx.winner && fx.winner!==fx.b ? 'loser' : '';
-        return `<div class="fixture-row">
-          <div class="fixture-side ${aLose}"><img src="${fx.a.iconSmall}"><span>${fx.a.name}</span></div>
-          <div class="fixture-vs">vs</div>
-          <div class="fixture-side ${bLose}"><img src="${fx.b.iconSmall}"><span>${fx.b.name}</span></div>
-          <div class="fixture-status">${icon}</div>
+        const aLose = fx.winner && fx.winner!==fx.a ? 'lose' : '';
+        const bLose = fx.winner && fx.winner!==fx.b ? 'lose' : '';
+        return `<div class="row-line">
+          <img src="${fx.a.iconSmall}"><div class="nm ${aLose}">${fx.a.name}</div>
+          <div class="vs">vs</div>
+          <div class="nm ${bLose}" style="text-align:right;">${fx.b.name}</div><img src="${fx.b.iconSmall}">
+          <div class="tick">${icon}</div>
         </div>`;
       }).join('');
     }
-  }
-
-  function renderActiveRoster(){
-    const el = document.getElementById('activeRoster');
-    el.innerHTML = activeFighters.map(f=>`
-      <div class="fighter-card ${f.alive?'':'dead'}" id="fc-${f.code}">
-        <div class="fc-top"><img src="${f.iconSmall}" alt=""><div class="fc-name">${f.name}</div></div>
-        <div class="hp-track"><div class="hp-fill" style="width:${Math.max(0,f.hp)}%"></div></div>
-      </div>`).join('');
-  }
-
-  function updateActiveRosterHP(){
-    activeFighters.forEach(f=>{
-      const card = document.getElementById('fc-'+f.code);
-      if(!card) return;
-      card.classList.toggle('dead', !f.alive);
-      const fill = card.querySelector('.hp-fill');
-      fill.style.width = Math.max(0,f.hp) + '%';
-      fill.style.background = f.hp>40 ? 'linear-gradient(90deg, var(--green), #8fe0b8)' : 'linear-gradient(90deg, var(--red), #ff8b7f)';
-    });
   }
 
   // =========================================================
@@ -566,7 +632,7 @@
     ctx.fillStyle = grad; ctx.fill(); ctx.restore();
 
     ctx.save();
-    ctx.strokeStyle = 'rgba(232,185,75,.18)'; ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(232,185,75,.22)'; ctx.lineWidth = 3;
     ctx.beginPath(); ctx.arc(CX,CY,currentArenaR,0,Math.PI*2); ctx.stroke();
     ctx.strokeStyle = 'rgba(148,163,194,.12)';
     ctx.beginPath(); ctx.arc(CX,CY,currentArenaR*0.62,0,Math.PI*2); ctx.stroke();
@@ -577,6 +643,7 @@
   function drawFighter(f){
     if(!f.body) return;
     const {x,y} = f.body.position, ang = f.body.angle, rr = currentFighterR;
+    const hpFrac = Math.max(0, f.hp) / MAX_HP;
     ctx.save(); ctx.translate(x,y);
     if(f.flashT > 0){
       ctx.beginPath(); ctx.arc(0,0,rr+6,0,Math.PI*2);
@@ -592,12 +659,12 @@
 
     ctx.save(); ctx.translate(x,y);
     ctx.beginPath(); ctx.arc(0,0,rr,0,Math.PI*2); ctx.lineWidth = 2.5;
-    ctx.strokeStyle = f.hp>40 ? 'rgba(238,242,248,.55)' : 'rgba(228,72,60,.85)'; ctx.stroke();
+    ctx.strokeStyle = hpFrac>0.4 ? 'rgba(238,242,248,.55)' : 'rgba(228,72,60,.85)'; ctx.stroke();
     ctx.restore();
 
     ctx.save(); ctx.translate(x,y); ctx.rotate(-Math.PI/2);
-    ctx.beginPath(); ctx.arc(0,0,rr+6,0, Math.PI*2*(Math.max(0,f.hp)/100));
-    ctx.strokeStyle = f.hp>40 ? '#3ecf8e' : '#e4483c'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.stroke();
+    ctx.beginPath(); ctx.arc(0,0,rr+6,0, Math.PI*2*hpFrac);
+    ctx.strokeStyle = hpFrac>0.4 ? '#3ecf8e' : '#e4483c'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.stroke();
     ctx.restore();
   }
 
@@ -610,39 +677,27 @@
     });
   }
 
-  // ---- Homing assist for 1v1 duels so the stream keeps pace ----
-  function applyDuelHoming(){
-    if(activeFighters.length !== 2) return;
-    const alive = activeFighters.filter(f=>f.alive && f.body);
-    if(alive.length !== 2) return;
-    const [f1,f2] = alive;
-    const dir = Vector.sub(f2.body.position, f1.body.position);
-    const dist = Vector.magnitude(dir) || 1;
-    const norm = Vector.div(dir, dist);
-    const mag = dist > 160 ? 0.0022 : 0.0006;
-    Body.applyForce(f1.body, f1.body.position, Vector.mult(norm, mag));
-    Body.applyForce(f2.body, f2.body.position, Vector.mult(norm, -mag));
-  }
-
   let lastTime = performance.now();
   function loop(now){
     const dt = Math.min(0.033, (now-lastTime)/1000);
     lastTime = now;
 
     if(matchRunning){
-      applyDuelHoming();
+      applyCenterPull();
       Engine.update(engine, dt*1000);
       activeFighters.forEach(f=>{
+        if(!f.alive) return;
+        containFighter(f);
         if(f.flashT>0) f.flashT = Math.max(0, f.flashT-dt);
-        if(f.alive && f.hp <= 0){
+        if(f.hp <= 0){
           f.hp = 0; f.alive = false;
           spawnBurst(f.body.position.x, f.body.position.y, '#e4483c', 22);
           shake = Math.min(12, shake+4);
+          sfxEliminate();
           f.removeBody();
         }
       });
       checkMatchEnd();
-      updateActiveRosterHP();
     }
     hype = Math.max(0, hype - dt*4);
     document.getElementById('hypeFill').style.width = hype + '%';
@@ -661,45 +716,34 @@
   // =========================================================
   // CONFETTI + CHAMPION OVERLAY
   // =========================================================
-  const pastChampions = [];
   function confettiBurst(){
     const overlay = document.getElementById('champOverlay');
     const colors = ['#e8b94b','#3ecf8e','#e4483c','#eef2f8'];
-    for(let i=0;i<36;i++){
+    for(let i=0;i<28;i++){
       const d = document.createElement('div');
       const c = colors[i % colors.length];
-      d.style.cssText = `position:absolute; top:-10px; left:${Math.random()*100}%; width:7px; height:12px;
+      d.style.cssText = `position:absolute; top:-10px; left:${Math.random()*100}%; width:6px; height:10px;
         background:${c}; opacity:.9; border-radius:2px;
-        animation:fall ${1.6+Math.random()*1.4}s linear ${Math.random()*0.5}s forwards;`;
+        animation:fall ${1.4+Math.random()*1.2}s linear ${Math.random()*0.4}s forwards;`;
       overlay.appendChild(d);
-      setTimeout(()=> d.remove(), 3500);
+      setTimeout(()=> d.remove(), 3000);
     }
-  }
-
-  function renderChampHistory(){
-    const el = document.getElementById('champHistory');
-    if(pastChampions.length === 0){ el.textContent = 'None crowned yet this broadcast.'; return; }
-    el.innerHTML = pastChampions.slice(-6).reverse().map(c=>
-      `<div style="display:flex;align-items:center;gap:6px;padding:4px 0;">
-        <img src="${c.iconSmall}" style="width:20px;height:14px;object-fit:cover;border-radius:2px;">
-        <span style="font-size:11.5px;">${c.name}</span>
-      </div>`).join('');
   }
 
   async function crownChampion(fighter){
     fighter.status = 'champion';
     refreshPanels();
-    setStageTitle('🏆 WORLD CHAMPION: ' + fighter.name.toUpperCase());
+    setStage('Champion');
+    setMatchTitle('🏆 ' + fighter.name.toUpperCase() + ' — WORLD CHAMPION');
     logTicker(fighter.name + ' conquered all 88 nations to win the Flag Arena World Championship!');
-    renderStageTrack(6);
     document.getElementById('champFlag').src = flagUrl(fighter.code,'w320');
     document.getElementById('champName').textContent = fighter.name;
     document.getElementById('champStat').textContent = 'Won ' + fighter.winCount + ' consecutive matches this tournament.';
     document.getElementById('champOverlay').classList.remove('hidden');
     confettiBurst();
-    pastChampions.push(fighter);
-    renderChampHistory();
-    await wait(7000);
+    sfxChampion();
+    announce(`${fighter.name} are your Flag Arena world champions!`);
+    await wait(6000);
     document.getElementById('champOverlay').classList.add('hidden');
   }
 
@@ -713,25 +757,29 @@
     fixtureMode = 'playin';
     activeFighters = [];
     particles = [];
+    matchIndex = 0;
+    matchNumEl.textContent = '0/' + TOTAL_MATCHES;
     refreshPanels();
   }
 
   async function runPlayIns(){
     fixtureMode = 'playin';
-    renderStageTrack(0);
-    setStageTitle('Continental Play-Ins');
+    setStage('Play-Ins');
     const qualifiers = [];
     for(let ci=0; ci<CONTINENTS.length; ci++){
       const cont = CONTINENTS[ci];
       const roster = cont.list.map(([code])=> registry[code]);
       continentStatus[ci].status = 'live';
       continentStatus[ci].remain = roster.length;
+      bumpMatchIndex();
       refreshPanels();
+      setMatchTitle(cont.name.toUpperCase() + ' PLAY-IN');
       logTicker(`${cont.name} Play-In starting — ${roster.length} nations battle for ${cont.quota} spots.`);
-      showBanner(cont.name.toUpperCase(), `Play-In · Top ${cont.quota} Qualify`, 1600);
-      await wait(1600);
+      showBanner(cont.name.toUpperCase(), `Top ${cont.quota} Qualify`, 1500);
+      sfxStart();
+      announce(`${cont.name} play-in starting!`);
+      await wait(1500);
 
-      // live remain-count updater while this continent's rumble plays
       const remainTimer = setInterval(()=>{
         continentStatus[ci].remain = roster.filter(f=>f.alive).length;
         renderFixtures();
@@ -747,8 +795,10 @@
       qualifiers.push(...survivors);
       refreshPanels();
       logTicker(`${cont.name} complete — qualified: ${survivors.map(s=>s.name).join(', ')}`);
-      showBanner(cont.quota + ' QUALIFIED', cont.name + ' Play-In Complete', 1800);
-      await wait(1900);
+      showBanner(cont.quota + ' QUALIFIED', cont.name + ' Play-In Complete', 1700);
+      sfxWin();
+      announce(`${cont.name} play-in complete. ${survivors.length} nations qualify.`);
+      await wait(1800);
     }
     return qualifiers;
   }
@@ -759,27 +809,30 @@
     while(roundFighters.length > 1){
       const n = roundFighters.length;
       const name = roundNameFor(n);
-      renderStageTrack(roundStageIdx(n));
-      setStageTitle(name.toUpperCase());
+      setStage(name);
       const pairs = makePairs(roundFighters);
       currentFixtures = pairs.map(([a,b])=>({a,b,status:'upcoming',winner:null}));
       roundFighters.forEach(f=> f.status = 'qualified');
       refreshPanels();
+      setMatchTitle(name.toUpperCase() + ' DRAWN');
       logTicker(`${name} bracket set — ${pairs.length} ${pairs.length===1?'match':'matches'} to decide the next round.`);
-      await wait(1500);
+      await wait(1400);
 
       const winners = [];
       for(let i=0;i<pairs.length;i++){
         const [a,b] = pairs[i];
         currentFixtures[i].status = 'live';
         a.status = 'battling'; b.status = 'battling';
+        bumpMatchIndex();
         refreshPanels();
-        setStageTitle(`${name}: ${a.name} vs ${b.name}`);
-        showBanner(a.name.toUpperCase() + ' VS ' + b.name.toUpperCase(), name, 1500);
-        await wait(1200);
+        setMatchTitle(a.name.toUpperCase() + ' ⚔ ' + b.name.toUpperCase());
+        showBanner(a.name.toUpperCase() + ' VS ' + b.name.toUpperCase(), name, 1400);
+        sfxStart();
+        announce(`Next round: ${a.name} versus ${b.name}.`);
+        await wait(1100);
 
         const survivors = await runMatch([a,b], 1);
-        const winner = survivors[0] || a; // safety fallback
+        const winner = survivors[0] || a;
         const loser = winner === a ? b : a;
         winner.winCount += 1;
         winner.status = 'qualified';
@@ -788,9 +841,11 @@
         currentFixtures[i].winner = winner;
         winners.push(winner);
         refreshPanels();
-        showBanner(winner.name.toUpperCase() + ' WINS', name + ' Result', 1600);
+        showBanner(winner.name.toUpperCase() + ' WINS', name + ' Result', 1500);
         logTicker(`${winner.name} defeats ${loser.name} in the ${name}.`);
-        await wait(1700);
+        sfxWin();
+        announce(`${winner.name} defeats ${loser.name}.`);
+        await wait(1600);
       }
       roundFighters = winners;
     }
@@ -798,10 +853,13 @@
   }
 
   async function runFullTournament(){
+    cupCount++;
+    cupNumEl.textContent = cupCount;
     resetTournament();
-    showBanner('WORLD CHAMPIONSHIP', 'New Tournament Beginning', 2000);
+    setMatchTitle('NEW TOURNAMENT BEGINNING');
     logTicker('A new Flag Arena World Championship begins — 88 nations, 6 continents, one champion.');
-    await wait(2200);
+    showBanner('WORLD CHAMPIONSHIP', 'Cup ' + cupCount, 1800);
+    await wait(2000);
     const qualifiers = await runPlayIns();
     const champion = await runBracket(qualifiers);
     await crownChampion(champion);
@@ -809,16 +867,12 @@
 
   async function runForever(){
     while(true){
-      try{
-        await runFullTournament();
-      } catch(e){
-        console.error('Tournament error, restarting:', e);
-      }
-      await wait(2500);
+      try{ await runFullTournament(); }
+      catch(e){ console.error('Tournament error, restarting:', e); }
+      await wait(2200);
     }
   }
 
-  // Kick off the broadcast automatically — no interaction required.
   refreshPanels();
   runForever();
 
