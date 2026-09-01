@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FLAG ARENA WORLD CHAMPIONSHIP — 24/7 Broadcast</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+<style>
+  :root{
+    --navy-0:#070c16; --navy-1:#0c1526; --navy-2:#131f36; --navy-3:#1b2b48;
+    --gold:#e8b94b; --gold-dim:#8a733a; --white:#eef2f8; --mist:#94a3c2;
+    --red:#e4483c; --green:#3ecf8e; --shadow:rgba(0,0,0,.5);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    background:
+      radial-gradient(ellipse 1200px 600px at 50% -10%, rgba(232,185,75,.08), transparent 60%),
+      radial-gradient(ellipse 900px 900px at 85% 110%, rgba(62,207,142,.05), transparent 55%),
+      var(--navy-0);
+    color:var(--white); font-family:'Inter',sans-serif; min-height:100%;
+  }
+  .display{font-family:'Teko',sans-serif; letter-spacing:.02em;}
+  .shell{max-width:1440px; margin:0 auto; padding:16px 16px 40px;}
+
+  /* ---------- TOP BAR ---------- */
+  .topbar{
+    display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+    padding:12px 18px; margin-bottom:10px;
+    background:linear-gradient(180deg, var(--navy-2), var(--navy-1));
+    border:1px solid #23324f; border-radius:14px;
+    box-shadow:0 10px 30px var(--shadow);
+  }
+  .live-badge{
+    display:flex; align-items:center; gap:6px; padding:5px 10px; border-radius:20px;
+    background:rgba(228,72,60,.15); border:1px solid rgba(228,72,60,.5);
+    font-size:11px; font-weight:800; letter-spacing:.12em; color:#ff8b7f;
+  }
+  .live-dot{width:7px; height:7px; border-radius:50%; background:var(--red); animation:pulse 1.4s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.25;}}
+  .brand{display:flex; align-items:center; gap:8px;}
+  .brand .mark{width:28px;height:28px;border-radius:7px;
+    background:conic-gradient(from 180deg, var(--gold), var(--red) 33%, var(--green) 66%, var(--gold));
+    box-shadow:inset 0 0 0 2px rgba(0,0,0,.35); flex-shrink:0;}
+  .brand h1{font-size:24px; margin:0; font-weight:700; text-transform:uppercase; line-height:1;}
+  .brand h1 span{color:var(--gold);}
+
+  .stage-track{display:flex; align-items:center; gap:6px; margin-left:auto; flex-wrap:wrap;}
+  .stage-pip{
+    font-size:10px; letter-spacing:.06em; text-transform:uppercase; font-weight:700;
+    padding:5px 9px; border-radius:7px; color:var(--mist); background:#0e1830; border:1px solid #23324f;
+    white-space:nowrap;
+  }
+  .stage-pip.done{color:var(--green); border-color:rgba(62,207,142,.35);}
+  .stage-pip.active{color:#241a02; background:var(--gold); border-color:var(--gold);}
+
+  .subbar{
+    display:flex; flex-direction:column; gap:2px; padding:10px 18px; margin-bottom:14px;
+    background:var(--navy-1); border:1px solid #1c2a45; border-radius:12px;
+  }
+  .subbar .stage-title{font-family:'Teko',sans-serif; font-size:22px; font-weight:600; color:var(--white);}
+  .subbar .ticker{font-size:12px; color:var(--gold); min-height:16px;}
+
+  /* ---------- GRID LAYOUT ---------- */
+  .grid{display:grid; grid-template-columns:260px 1fr 300px; gap:14px; align-items:start;}
+  @media (max-width:1100px){ .grid{grid-template-columns:1fr;} }
+
+  .panel{
+    background:linear-gradient(180deg, var(--navy-2), var(--navy-1));
+    border:1px solid #23324f; border-radius:14px; padding:14px;
+    box-shadow:0 10px 26px var(--shadow); margin-bottom:14px;
+  }
+  .panel h3{
+    margin:0 0 10px; font-family:'Teko',sans-serif; font-size:19px; font-weight:600;
+    text-transform:uppercase; letter-spacing:.03em; display:flex; align-items:center; gap:6px;
+    color:var(--white);
+  }
+  .panel h3 .count{margin-left:auto; font-size:12px; color:var(--gold); font-family:'Inter',sans-serif; font-weight:700;}
+
+  /* Highest wins */
+  .wins-row{display:flex; align-items:center; gap:8px; padding:6px 4px; border-bottom:1px solid #1c2a45;}
+  .wins-row:last-child{border-bottom:none;}
+  .wins-rank{width:16px; font-size:11px; color:var(--mist); font-weight:700; flex-shrink:0;}
+  .wins-row img{width:22px; height:16px; object-fit:cover; border-radius:2px; flex-shrink:0;}
+  .wins-name{font-size:11.5px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;}
+  .wins-badge{font-size:11px; font-weight:800; color:#241a02; background:var(--gold); border-radius:6px; padding:2px 6px; flex-shrink:0;}
+
+  /* Alive grid */
+  .alive-grid{
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(26px,1fr)); gap:4px;
+    max-height:230px; overflow-y:auto; padding-right:2px;
+  }
+  .alive-grid img{width:100%; aspect-ratio:4/3; object-fit:cover; border-radius:3px; box-shadow:0 0 0 1px #23324f;}
+  .alive-grid::-webkit-scrollbar{width:5px;}
+  .alive-grid::-webkit-scrollbar-thumb{background:#2b3c5c; border-radius:3px;}
+
+  /* Fixtures */
+  .fixture-row{display:flex; align-items:center; gap:6px; padding:6px 4px; border-bottom:1px solid #1c2a45; font-size:11.5px;}
+  .fixture-row:last-child{border-bottom:none;}
+  .fixture-row img{width:18px; height:13px; object-fit:cover; border-radius:2px; flex-shrink:0;}
+  .fixture-side{display:flex; align-items:center; gap:5px; flex:1; min-width:0;}
+  .fixture-side span{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .fixture-side.loser{opacity:.4; text-decoration:line-through;}
+  .fixture-vs{color:var(--mist); font-size:10px; flex-shrink:0;}
+  .fixture-status{width:14px; text-align:center; flex-shrink:0; font-size:11px;}
+  .fixture-quota{font-size:10px; color:var(--mist); margin-left:auto; flex-shrink:0;}
+
+  /* ---------- ARENA ---------- */
+  .arena-wrap{
+    position:relative; width:100%; aspect-ratio:1/1;
+    border-radius:20px; overflow:hidden;
+    background:radial-gradient(circle at 50% 42%, #16233c 0%, #0d1729 55%, #070c16 100%);
+    border:1px solid #23324f;
+    box-shadow:0 20px 50px var(--shadow), inset 0 0 80px rgba(0,0,0,.6);
+    margin-bottom:14px;
+  }
+  canvas{display:block; width:100%; height:100%;}
+
+  .banner{
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) scale(.7);
+    text-align:center; pointer-events:none; opacity:0; transition:opacity .25s ease, transform .25s ease; z-index:5;
+  }
+  .banner.show{opacity:1; transform:translate(-50%,-50%) scale(1);}
+  .banner .display{font-size:52px; font-weight:700; color:var(--white); text-transform:uppercase; text-shadow:0 6px 24px rgba(0,0,0,.6);}
+  .banner .sub{font-size:12px; letter-spacing:.2em; color:var(--gold); text-transform:uppercase; margin-top:-8px;}
+
+  .hype-badge{
+    position:absolute; top:12px; right:12px; z-index:4; display:flex; align-items:center; gap:6px;
+    background:rgba(7,12,22,.6); border:1px solid #2b3c5c; border-radius:20px; padding:5px 10px;
+  }
+  .hype-track{width:70px; height:6px; border-radius:4px; background:#0a1220; overflow:hidden;}
+  .hype-fill{height:100%; width:0%; background:linear-gradient(90deg, var(--gold), var(--red)); transition:width .18s ease;}
+  .hype-lbl{font-size:9.5px; color:var(--mist); letter-spacing:.08em; text-transform:uppercase;}
+
+  .overlay{
+    position:absolute; inset:0; z-index:10; background:rgba(7,12,22,.9); backdrop-filter:blur(6px);
+    display:flex; align-items:center; justify-content:center; padding:24px;
+  }
+  .overlay.hidden{display:none;}
+  .card{width:100%; max-width:480px; text-align:center;}
+  .card h2{font-family:'Teko',sans-serif; font-size:40px; font-weight:700; margin:0 0 4px; text-transform:uppercase;}
+  .card p.lede{color:var(--mist); font-size:12.5px; margin:0 0 6px;}
+  .champ-flag{width:130px; height:90px; object-fit:cover; border-radius:10px; margin:0 auto 14px;
+    box-shadow:0 12px 34px rgba(0,0,0,.5), 0 0 0 4px var(--navy-2), 0 0 0 6px var(--gold);}
+
+  /* ---------- ACTIVE ROSTER ---------- */
+  .active-roster{display:grid; grid-template-columns:repeat(auto-fill, minmax(120px,1fr)); gap:8px;}
+  .fighter-card{
+    background:linear-gradient(180deg, var(--navy-2), var(--navy-1)); border:1px solid #23324f;
+    border-radius:10px; padding:7px; display:flex; flex-direction:column; gap:5px;
+    transition:opacity .3s ease, filter .3s ease;
+  }
+  .fighter-card.dead{opacity:.3; filter:grayscale(1);}
+  .fc-top{display:flex; align-items:center; gap:6px;}
+  .fc-top img{width:22px; height:16px; object-fit:cover; border-radius:2px; flex-shrink:0;}
+  .fc-name{font-size:10.5px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .hp-track{height:5px; border-radius:4px; background:#0a1220; overflow:hidden; box-shadow:inset 0 0 0 1px #23324f;}
+  .hp-fill{height:100%; width:100%; background:linear-gradient(90deg, var(--green), #8fe0b8); transition:width .15s ease, background .2s ease;}
+
+  footer{text-align:center; color:var(--mist); font-size:10.5px; margin-top:18px; line-height:1.7;}
+  footer b{color:var(--gold);}
+
+  @keyframes fall{to{transform:translateY(650px) rotate(360deg); opacity:0;}}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <div class="topbar">
+    <div class="live-badge"><div class="live-dot"></div>ON AIR</div>
+    <div class="brand"><div class="mark"></div><h1>Flag<span>Arena</span> World Championship</h1></div>
+    <div class="stage-track" id="stageTrack"></div>
+  </div>
+
+  <div class="subbar">
+    <div class="stage-title" id="stageTitle">Booting broadcast…</div>
+    <div class="ticker" id="tickerText">Loading the world's flags…</div>
+  </div>
+
+  <div class="grid">
+    <!-- LEFT: Highest Wins -->
+    <div class="side-left">
+      <div class="panel">
+        <h3>🏆 Highest Wins</h3>
+        <div id="winsList"></div>
+      </div>
+      <div class="panel">
+        <h3>👑 Past Champions</h3>
+        <div id="champHistory" style="font-size:11.5px; color:var(--mist);">None crowned yet this broadcast.</div>
+      </div>
+    </div>
+
+    <!-- CENTER: Arena -->
+    <div class="center-col">
+      <div class="arena-wrap" id="arenaWrap">
+        <canvas id="arena"></canvas>
+        <div class="hype-badge">
+          <span class="hype-lbl">HYPE</span>
+          <div class="hype-track"><div class="hype-fill" id="hypeFill"></div></div>
+        </div>
+        <div class="banner" id="banner">
+          <div class="display" id="bannerText">LOADING</div>
+          <div class="sub" id="bannerSub">Please wait</div>
+        </div>
+        <div class="overlay hidden" id="champOverlay">
+          <div class="card">
+            <div class="sub" style="color:var(--gold); letter-spacing:.3em; font-size:12px; margin-bottom:10px;">WORLD CHAMPION</div>
+            <img class="champ-flag" id="champFlag" src="" alt="">
+            <h2 id="champName">—</h2>
+            <p class="lede" id="champStat">—</p>
+            <p class="lede">Next tournament begins shortly…</p>
+          </div>
+        </div>
+      </div>
+      <div class="active-roster" id="activeRoster"></div>
+    </div>
+
+    <!-- RIGHT: Alive + Fixtures -->
+    <div class="side-right">
+      <div class="panel">
+        <h3>🟢 Alive <span class="count" id="aliveCount">88</span></h3>
+        <div class="alive-grid" id="aliveGrid"></div>
+      </div>
+      <div class="panel">
+        <h3 id="fixtureTitle">⏭ Play-In Order</h3>
+        <div id="fixtureList"></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    88 nations · 6 continental play-ins seed 32 qualifiers (bigger continents send more flags) · single-elimination knockout from Round of 32 to the Final.<br>
+    Fully autonomous broadcast — <b>no interaction required</b>. Runs on a continuous loop.
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // =========================================================
+  // DATA
+  // =========================================================
+  const CONTINENTS = [
+    { name:'Africa', quota:7, list:[
+      ['ng','Nigeria'],['eg','Egypt'],['za','South Africa'],['ke','Kenya'],['gh','Ghana'],
+      ['ma','Morocco'],['dz','Algeria'],['et','Ethiopia'],['tz','Tanzania'],['ug','Uganda'],
+      ['cm','Cameroon'],['ci','Ivory Coast'],['sn','Senegal'],['tn','Tunisia'],['ao','Angola'],
+      ['mz','Mozambique'],['zm','Zambia'],['zw','Zimbabwe'],['rw','Rwanda'],['mg','Madagascar']
+    ]},
+    { name:'Asia', quota:7, list:[
+      ['cn','China'],['in','India'],['jp','Japan'],['kr','South Korea'],['id','Indonesia'],
+      ['sa','Saudi Arabia'],['ae','UAE'],['tr','Turkey'],['th','Thailand'],['vn','Vietnam'],
+      ['ph','Philippines'],['pk','Pakistan'],['bd','Bangladesh'],['ir','Iran'],['iq','Iraq'],
+      ['il','Israel'],['my','Malaysia'],['sg','Singapore'],['kz','Kazakhstan'],['mn','Mongolia']
+    ]},
+    { name:'Europe', quota:7, list:[
+      ['de','Germany'],['fr','France'],['gb','United Kingdom'],['it','Italy'],['es','Spain'],
+      ['nl','Netherlands'],['pt','Portugal'],['se','Sweden'],['no','Norway'],['dk','Denmark'],
+      ['fi','Finland'],['pl','Poland'],['ch','Switzerland'],['at','Austria'],['be','Belgium'],
+      ['ie','Ireland'],['gr','Greece'],['cz','Czechia'],['hu','Hungary'],['ro','Romania']
+    ]},
+    { name:'North America', quota:4, list:[
+      ['us','USA'],['ca','Canada'],['mx','Mexico'],['cu','Cuba'],['jm','Jamaica'],
+      ['cr','Costa Rica'],['pa','Panama'],['gt','Guatemala'],['hn','Honduras'],['do','Dominican Republic']
+    ]},
+    { name:'South America', quota:4, list:[
+      ['br','Brazil'],['ar','Argentina'],['cl','Chile'],['co','Colombia'],['pe','Peru'],
+      ['uy','Uruguay'],['ve','Venezuela'],['ec','Ecuador'],['py','Paraguay'],['bo','Bolivia']
+    ]},
+    { name:'Oceania', quota:3, list:[
+      ['au','Australia'],['nz','New Zealand'],['fj','Fiji'],['pg','Papua New Guinea'],
+      ['ws','Samoa'],['to','Tonga'],['vu','Vanuatu'],['sb','Solomon Islands']
+    ]}
+  ];
+  const flagUrl = (code,size) => `https://flagcdn.com/${size||'w80'}/${code}.png`;
+
+  // =========================================================
+  // FIGHTER REGISTRY
+  // =========================================================
+  function Fighter(code, name, continent){
+    this.code = code; this.name = name; this.continent = continent;
+    this.img = new Image(); this.img.crossOrigin = 'anonymous'; this.img.src = flagUrl(code,'w160');
+    this.iconSmall = flagUrl(code,'w40');
+    this.hp = 100; this.alive = true; this.status = 'idle'; // idle | battling | qualified | eliminated | champion
+    this.winCount = 0; this.flashT = 0; this.body = null;
+  }
+  Fighter.prototype.reset = function(){
+    this.hp = 100; this.alive = true; this.status = 'idle'; this.winCount = 0; this.flashT = 0; this.body = null;
+  };
+  Fighter.prototype.spawnBody = function(x,y){
+    this.hp = 100; this.alive = true; this.flashT = 0;
+    const angle = Math.random()*Math.PI*2, speed = 2.6 + Math.random()*2.2;
+    this.body = Bodies.circle(x, y, currentFighterR, {
+      restitution:0.92, friction:0.001, frictionAir:0.0022, density:0.002,
+      label:'fighter:'+this.code
+    });
+    Body.setVelocity(this.body, {x:Math.cos(angle)*speed, y:Math.sin(angle)*speed});
+    Body.setAngularVelocity(this.body, (Math.random()-0.5)*0.08);
+    World.add(engine.world, this.body);
+  };
+  Fighter.prototype.removeBody = function(){
+    if(this.body){ World.remove(engine.world, this.body); this.body = null; }
+  };
+
+  const registry = {};
+  CONTINENTS.forEach(cont=>{
+    cont.list.forEach(([code,name])=>{
+      registry[code] = new Fighter(code, name, cont.name);
+    });
+  });
+  const ALL_FIGHTERS = Object.values(registry);
+
+  // =========================================================
+  // MATTER.JS SETUP
+  // =========================================================
+  const { Engine, World, Bodies, Body, Vector } = Matter;
+  const engine = Engine.create();
+  engine.world.gravity.x = 0; engine.world.gravity.y = 0;
+
+  const SIZE = 800, CX = 400, CY = 400;
+  let currentArenaR = 300, currentFighterR = 34;
+  let wallBodies = [];
+
+  function arenaRadiusFor(n){ return Math.round(Math.min(372, 210 + n*8)); }
+  function fighterRadiusFor(n){ return Math.round(Math.max(16, 46 - Math.max(0,n-2)*1.15)); }
+
+  function buildWalls(radius){
+    wallBodies.forEach(w=> World.remove(engine.world, w));
+    wallBodies = [];
+    const segs = 22, thickness = 24;
+    for(let i=0;i<segs;i++){
+      const a = (i/segs) * Math.PI*2;
+      const cx = CX + Math.cos(a) * (radius + thickness/2 - 2);
+      const cy = CY + Math.sin(a) * (radius + thickness/2 - 2);
+      const len = (2*Math.PI*radius)/segs * 1.35;
+      const wall = Bodies.rectangle(cx, cy, len, thickness, {
+        isStatic:true, angle:a+Math.PI/2, restitution:0.85, friction:0.02
+      });
+      wallBodies.push(wall);
+    }
+    World.add(engine.world, wallBodies);
+  }
+
+  function setupArenaFor(n){
+    currentArenaR = arenaRadiusFor(n);
+    currentFighterR = fighterRadiusFor(n);
+    buildWalls(currentArenaR);
+  }
+
+  function spawnRing(list){
+    const n = list.length;
+    list.forEach((f,i)=>{
+      const a = (i/n) * Math.PI*2 + (Math.random()-0.5)*0.2;
+      const rad = currentArenaR * (0.5 + Math.random()*0.15);
+      f.status = 'battling';
+      f.spawnBody(CX + Math.cos(a)*rad, CY + Math.sin(a)*rad);
+    });
+  }
+
+  // =========================================================
+  // MATCH RUNNER
+  // =========================================================
+  let activeFighters = [];
+  let matchRunning = false;
+  let matchTargetRemaining = 1;
+  let matchResolve = null;
+  let particles = [];
+  let shake = 0;
+  let hype = 0;
+
+  function runMatch(list, targetRemaining){
+    return new Promise(resolve=>{
+      activeFighters = list;
+      matchTargetRemaining = targetRemaining;
+      setupArenaFor(list.length);
+      spawnRing(list);
+      matchRunning = true;
+      matchResolve = resolve;
+      refreshPanels();
+    });
+  }
+
+  function fighterFromBody(body){
+    if(!body.label || body.label.indexOf('fighter:') !== 0) return null;
+    const code = body.label.split(':')[1];
+    const f = registry[code];
+    return (f && f.body === body) ? f : null;
+  }
+
+  Matter.Events.on(engine, 'collisionStart', (event)=>{
+    event.pairs.forEach(pair=>{
+      const fa = fighterFromBody(pair.bodyA), fb = fighterFromBody(pair.bodyB);
+      if(fa && fb){
+        const rv = Vector.sub(pair.bodyA.velocity, pair.bodyB.velocity);
+        const speed = Vector.magnitude(rv);
+        const scale = activeFighters.length > 6 ? 1.35 : 1; // faster pace for big rumbles
+        const dmg = Math.max(3, Math.min(36, speed * 2.1 * scale));
+        fa.hp -= dmg; fb.hp -= dmg;
+        fa.flashT = 0.15; fb.flashT = 0.15;
+        hype = Math.min(100, hype + 3);
+        const mid = Vector.add(pair.bodyA.position, Vector.mult(Vector.sub(pair.bodyB.position,pair.bodyA.position), 0.5));
+        spawnBurst(mid.x, mid.y, '#ffffff', Math.min(14, 4+speed));
+        shake = Math.min(10, shake + speed*0.3);
+      } else if(fa || fb){
+        const f = fa || fb;
+        spawnBurst(f.body.position.x, f.body.position.y, '#3ecf8e', 3);
+      }
+    });
+  });
+
+  function spawnBurst(x,y,color,n){
+    for(let i=0;i<n;i++){
+      const a = Math.random()*Math.PI*2, s = 1+Math.random()*4;
+      particles.push({x,y,vx:Math.cos(a)*s, vy:Math.sin(a)*s, life:1, color, r:1.5+Math.random()*2.5});
+    }
+  }
+
+  function checkMatchEnd(){
+    if(!matchRunning) return;
+    const alive = activeFighters.filter(f=>f.alive);
+    if(alive.length <= matchTargetRemaining){
+      matchRunning = false;
+      const resolve = matchResolve; matchResolve = null;
+      if(resolve) resolve(alive);
+    }
+  }
+
+  // =========================================================
+  // UI HELPERS
+  // =========================================================
+  const bannerEl = document.getElementById('banner');
+  const bannerText = document.getElementById('bannerText');
+  const bannerSub = document.getElementById('bannerSub');
+  function showBanner(text, sub, dur){
+    bannerText.textContent = text; bannerSub.textContent = sub;
+    bannerEl.classList.add('show');
+    clearTimeout(showBanner._t);
+    showBanner._t = setTimeout(()=> bannerEl.classList.remove('show'), dur||1300);
+  }
+
+  const stageTitleEl = document.getElementById('stageTitle');
+  const tickerEl = document.getElementById('tickerText');
+  function setStageTitle(t){ stageTitleEl.textContent = t; }
+  function logTicker(t){ tickerEl.textContent = t; }
+
+  const STAGES = ['Play-Ins','Round of 32','Round of 16','Quarterfinal','Semifinal','Final','Champion'];
+  const stageTrackEl = document.getElementById('stageTrack');
+  function renderStageTrack(activeIdx){
+    stageTrackEl.innerHTML = STAGES.map((s,i)=>{
+      const cls = i < activeIdx ? 'done' : (i === activeIdx ? 'active' : '');
+      return `<div class="stage-pip ${cls}">${s}</div>`;
+    }).join('');
+  }
+  renderStageTrack(0);
+
+  function wait(ms){ return new Promise(r=> setTimeout(r, ms)); }
+  function shuffle(arr){
+    const a=[...arr];
+    for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+    return a;
+  }
+  function makePairs(arr){
+    const s = shuffle(arr), pairs=[];
+    for(let i=0;i<s.length;i+=2) pairs.push([s[i], s[i+1]]);
+    return pairs;
+  }
+  const roundNameFor = n => ({32:'Round of 32',16:'Round of 16',8:'Quarterfinal',4:'Semifinal',2:'Final'}[n] || (n+' remain'));
+  const roundStageIdx = n => ({32:1,16:2,8:3,4:4,2:5}[n] || 0);
+
+  // ---- Panel rendering ----
+  let fixtureMode = 'playin'; // 'playin' | 'bracket'
+  let continentStatus = CONTINENTS.map(c=>({...c, status:'upcoming', remain:c.list.length}));
+  let currentFixtures = []; // {a,b,status,winner}
+
+  function refreshPanels(){
+    renderWins();
+    renderAlive();
+    renderFixtures();
+  }
+
+  function renderWins(){
+    const top = [...ALL_FIGHTERS].filter(f=>f.winCount>0).sort((a,b)=>b.winCount-a.winCount).slice(0,10);
+    const el = document.getElementById('winsList');
+    if(top.length === 0){ el.innerHTML = '<div style="font-size:11.5px;color:var(--mist);">No wins recorded yet.</div>'; return; }
+    el.innerHTML = top.map((f,i)=>`
+      <div class="wins-row">
+        <div class="wins-rank">${i+1}</div>
+        <img src="${f.iconSmall}" alt="">
+        <div class="wins-name">${f.name}</div>
+        <div class="wins-badge">${f.winCount}</div>
+      </div>`).join('');
+  }
+
+  function renderAlive(){
+    const alive = ALL_FIGHTERS.filter(f=> f.status !== 'eliminated');
+    document.getElementById('aliveCount').textContent = alive.length;
+    document.getElementById('aliveGrid').innerHTML = alive.map(f=>
+      `<img src="${f.iconSmall}" title="${f.name}" alt="${f.name}">`
+    ).join('');
+  }
+
+  function renderFixtures(){
+    const titleEl = document.getElementById('fixtureTitle');
+    const listEl = document.getElementById('fixtureList');
+    if(fixtureMode === 'playin'){
+      titleEl.textContent = '⏭ Play-In Order';
+      listEl.innerHTML = continentStatus.map(c=>{
+        const icon = c.status==='done' ? '✅' : (c.status==='live' ? '🔴' : '⏳');
+        return `<div class="fixture-row">
+          <div class="fixture-side"><span>${c.name}</span></div>
+          <div class="fixture-quota">${c.status==='upcoming' ? c.list.length+' → '+c.quota : c.remain+' → '+c.quota}</div>
+          <div class="fixture-status">${icon}</div>
+        </div>`;
+      }).join('');
+    } else {
+      titleEl.textContent = '⏭ ' + (currentFixtures.length ? roundNameFor(currentFixtures.length*2) : '') + ' Fixtures';
+      listEl.innerHTML = currentFixtures.map(fx=>{
+        const icon = fx.status==='done' ? '✅' : (fx.status==='live' ? '🔴' : '⏳');
+        const aLose = fx.winner && fx.winner!==fx.a ? 'loser' : '';
+        const bLose = fx.winner && fx.winner!==fx.b ? 'loser' : '';
+        return `<div class="fixture-row">
+          <div class="fixture-side ${aLose}"><img src="${fx.a.iconSmall}"><span>${fx.a.name}</span></div>
+          <div class="fixture-vs">vs</div>
+          <div class="fixture-side ${bLose}"><img src="${fx.b.iconSmall}"><span>${fx.b.name}</span></div>
+          <div class="fixture-status">${icon}</div>
+        </div>`;
+      }).join('');
+    }
+  }
+
+  function renderActiveRoster(){
+    const el = document.getElementById('activeRoster');
+    el.innerHTML = activeFighters.map(f=>`
+      <div class="fighter-card ${f.alive?'':'dead'}" id="fc-${f.code}">
+        <div class="fc-top"><img src="${f.iconSmall}" alt=""><div class="fc-name">${f.name}</div></div>
+        <div class="hp-track"><div class="hp-fill" style="width:${Math.max(0,f.hp)}%"></div></div>
+      </div>`).join('');
+  }
+
+  function updateActiveRosterHP(){
+    activeFighters.forEach(f=>{
+      const card = document.getElementById('fc-'+f.code);
+      if(!card) return;
+      card.classList.toggle('dead', !f.alive);
+      const fill = card.querySelector('.hp-fill');
+      fill.style.width = Math.max(0,f.hp) + '%';
+      fill.style.background = f.hp>40 ? 'linear-gradient(90deg, var(--green), #8fe0b8)' : 'linear-gradient(90deg, var(--red), #ff8b7f)';
+    });
+  }
+
+  // =========================================================
+  // CANVAS RENDER
+  // =========================================================
+  const canvas = document.getElementById('arena');
+  canvas.width = SIZE; canvas.height = SIZE;
+  const ctx = canvas.getContext('2d');
+
+  function drawArenaFloor(){
+    ctx.save();
+    ctx.beginPath(); ctx.arc(CX,CY,currentArenaR,0,Math.PI*2); ctx.closePath();
+    const grad = ctx.createRadialGradient(CX,CY,10,CX,CY,currentArenaR);
+    grad.addColorStop(0,'#1c2c4a'); grad.addColorStop(0.7,'#12203a'); grad.addColorStop(1,'#0a1220');
+    ctx.fillStyle = grad; ctx.fill(); ctx.restore();
+
+    ctx.save();
+    ctx.strokeStyle = 'rgba(232,185,75,.18)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(CX,CY,currentArenaR,0,Math.PI*2); ctx.stroke();
+    ctx.strokeStyle = 'rgba(148,163,194,.12)';
+    ctx.beginPath(); ctx.arc(CX,CY,currentArenaR*0.62,0,Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(CX,CY,currentArenaR*0.28,0,Math.PI*2); ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawFighter(f){
+    if(!f.body) return;
+    const {x,y} = f.body.position, ang = f.body.angle, rr = currentFighterR;
+    ctx.save(); ctx.translate(x,y);
+    if(f.flashT > 0){
+      ctx.beginPath(); ctx.arc(0,0,rr+6,0,Math.PI*2);
+      ctx.strokeStyle = `rgba(228,72,60,${f.flashT/0.15})`; ctx.lineWidth = 4; ctx.stroke();
+    }
+    ctx.beginPath(); ctx.arc(0,0,rr+2,0,Math.PI*2); ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fill();
+    ctx.rotate(ang);
+    ctx.beginPath(); ctx.arc(0,0,rr,0,Math.PI*2); ctx.closePath(); ctx.clip();
+    if(f.img.complete && f.img.naturalWidth){
+      ctx.drawImage(f.img, -rr, -rr*0.72, rr*2, rr*1.44);
+    } else { ctx.fillStyle = '#334261'; ctx.fillRect(-rr,-rr,rr*2,rr*2); }
+    ctx.restore();
+
+    ctx.save(); ctx.translate(x,y);
+    ctx.beginPath(); ctx.arc(0,0,rr,0,Math.PI*2); ctx.lineWidth = 2.5;
+    ctx.strokeStyle = f.hp>40 ? 'rgba(238,242,248,.55)' : 'rgba(228,72,60,.85)'; ctx.stroke();
+    ctx.restore();
+
+    ctx.save(); ctx.translate(x,y); ctx.rotate(-Math.PI/2);
+    ctx.beginPath(); ctx.arc(0,0,rr+6,0, Math.PI*2*(Math.max(0,f.hp)/100));
+    ctx.strokeStyle = f.hp>40 ? '#3ecf8e' : '#e4483c'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawParticles(dt){
+    particles = particles.filter(p=>p.life>0);
+    particles.forEach(p=>{
+      p.x += p.vx; p.y += p.vy; p.vx *= 0.94; p.vy *= 0.94; p.life -= dt*1.6;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r*Math.max(0,p.life),0,Math.PI*2);
+      ctx.fillStyle = p.color; ctx.globalAlpha = Math.max(0,p.life); ctx.fill(); ctx.globalAlpha = 1;
+    });
+  }
+
+  // ---- Homing assist for 1v1 duels so the stream keeps pace ----
+  function applyDuelHoming(){
+    if(activeFighters.length !== 2) return;
+    const alive = activeFighters.filter(f=>f.alive && f.body);
+    if(alive.length !== 2) return;
+    const [f1,f2] = alive;
+    const dir = Vector.sub(f2.body.position, f1.body.position);
+    const dist = Vector.magnitude(dir) || 1;
+    const norm = Vector.div(dir, dist);
+    const mag = dist > 160 ? 0.0022 : 0.0006;
+    Body.applyForce(f1.body, f1.body.position, Vector.mult(norm, mag));
+    Body.applyForce(f2.body, f2.body.position, Vector.mult(norm, -mag));
+  }
+
+  let lastTime = performance.now();
+  function loop(now){
+    const dt = Math.min(0.033, (now-lastTime)/1000);
+    lastTime = now;
+
+    if(matchRunning){
+      applyDuelHoming();
+      Engine.update(engine, dt*1000);
+      activeFighters.forEach(f=>{
+        if(f.flashT>0) f.flashT = Math.max(0, f.flashT-dt);
+        if(f.alive && f.hp <= 0){
+          f.hp = 0; f.alive = false;
+          spawnBurst(f.body.position.x, f.body.position.y, '#e4483c', 22);
+          shake = Math.min(12, shake+4);
+          f.removeBody();
+        }
+      });
+      checkMatchEnd();
+      updateActiveRosterHP();
+    }
+    hype = Math.max(0, hype - dt*4);
+    document.getElementById('hypeFill').style.width = hype + '%';
+
+    ctx.save(); ctx.clearRect(0,0,SIZE,SIZE);
+    if(shake > 0.1){ ctx.translate((Math.random()-0.5)*shake, (Math.random()-0.5)*shake); shake *= 0.85; } else { shake = 0; }
+    drawArenaFloor();
+    activeFighters.forEach(drawFighter);
+    drawParticles(dt);
+    ctx.restore();
+
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+
+  // =========================================================
+  // CONFETTI + CHAMPION OVERLAY
+  // =========================================================
+  const pastChampions = [];
+  function confettiBurst(){
+    const overlay = document.getElementById('champOverlay');
+    const colors = ['#e8b94b','#3ecf8e','#e4483c','#eef2f8'];
+    for(let i=0;i<36;i++){
+      const d = document.createElement('div');
+      const c = colors[i % colors.length];
+      d.style.cssText = `position:absolute; top:-10px; left:${Math.random()*100}%; width:7px; height:12px;
+        background:${c}; opacity:.9; border-radius:2px;
+        animation:fall ${1.6+Math.random()*1.4}s linear ${Math.random()*0.5}s forwards;`;
+      overlay.appendChild(d);
+      setTimeout(()=> d.remove(), 3500);
+    }
+  }
+
+  function renderChampHistory(){
+    const el = document.getElementById('champHistory');
+    if(pastChampions.length === 0){ el.textContent = 'None crowned yet this broadcast.'; return; }
+    el.innerHTML = pastChampions.slice(-6).reverse().map(c=>
+      `<div style="display:flex;align-items:center;gap:6px;padding:4px 0;">
+        <img src="${c.iconSmall}" style="width:20px;height:14px;object-fit:cover;border-radius:2px;">
+        <span style="font-size:11.5px;">${c.name}</span>
+      </div>`).join('');
+  }
+
+  async function crownChampion(fighter){
+    fighter.status = 'champion';
+    refreshPanels();
+    setStageTitle('🏆 WORLD CHAMPION: ' + fighter.name.toUpperCase());
+    logTicker(fighter.name + ' conquered all 88 nations to win the Flag Arena World Championship!');
+    renderStageTrack(6);
+    document.getElementById('champFlag').src = flagUrl(fighter.code,'w320');
+    document.getElementById('champName').textContent = fighter.name;
+    document.getElementById('champStat').textContent = 'Won ' + fighter.winCount + ' consecutive matches this tournament.';
+    document.getElementById('champOverlay').classList.remove('hidden');
+    confettiBurst();
+    pastChampions.push(fighter);
+    renderChampHistory();
+    await wait(7000);
+    document.getElementById('champOverlay').classList.add('hidden');
+  }
+
+  // =========================================================
+  // TOURNAMENT ORCHESTRATION
+  // =========================================================
+  function resetTournament(){
+    ALL_FIGHTERS.forEach(f=> f.reset());
+    continentStatus = CONTINENTS.map(c=>({...c, status:'upcoming', remain:c.list.length}));
+    currentFixtures = [];
+    fixtureMode = 'playin';
+    activeFighters = [];
+    particles = [];
+    refreshPanels();
+  }
+
+  async function runPlayIns(){
+    fixtureMode = 'playin';
+    renderStageTrack(0);
+    setStageTitle('Continental Play-Ins');
+    const qualifiers = [];
+    for(let ci=0; ci<CONTINENTS.length; ci++){
+      const cont = CONTINENTS[ci];
+      const roster = cont.list.map(([code])=> registry[code]);
+      continentStatus[ci].status = 'live';
+      continentStatus[ci].remain = roster.length;
+      refreshPanels();
+      logTicker(`${cont.name} Play-In starting — ${roster.length} nations battle for ${cont.quota} spots.`);
+      showBanner(cont.name.toUpperCase(), `Play-In · Top ${cont.quota} Qualify`, 1600);
+      await wait(1600);
+
+      // live remain-count updater while this continent's rumble plays
+      const remainTimer = setInterval(()=>{
+        continentStatus[ci].remain = roster.filter(f=>f.alive).length;
+        renderFixtures();
+      }, 350);
+
+      const survivors = await runMatch(roster, cont.quota);
+      clearInterval(remainTimer);
+
+      survivors.forEach(f=>{ f.winCount += 1; f.status = 'qualified'; });
+      roster.filter(f=> !survivors.includes(f)).forEach(f=> f.status = 'eliminated');
+      continentStatus[ci].status = 'done';
+      continentStatus[ci].remain = cont.quota;
+      qualifiers.push(...survivors);
+      refreshPanels();
+      logTicker(`${cont.name} complete — qualified: ${survivors.map(s=>s.name).join(', ')}`);
+      showBanner(cont.quota + ' QUALIFIED', cont.name + ' Play-In Complete', 1800);
+      await wait(1900);
+    }
+    return qualifiers;
+  }
+
+  async function runBracket(qualifiers){
+    fixtureMode = 'bracket';
+    let roundFighters = shuffle(qualifiers);
+    while(roundFighters.length > 1){
+      const n = roundFighters.length;
+      const name = roundNameFor(n);
+      renderStageTrack(roundStageIdx(n));
+      setStageTitle(name.toUpperCase());
+      const pairs = makePairs(roundFighters);
+      currentFixtures = pairs.map(([a,b])=>({a,b,status:'upcoming',winner:null}));
+      roundFighters.forEach(f=> f.status = 'qualified');
+      refreshPanels();
+      logTicker(`${name} bracket set — ${pairs.length} ${pairs.length===1?'match':'matches'} to decide the next round.`);
+      await wait(1500);
+
+      const winners = [];
+      for(let i=0;i<pairs.length;i++){
+        const [a,b] = pairs[i];
+        currentFixtures[i].status = 'live';
+        a.status = 'battling'; b.status = 'battling';
+        refreshPanels();
+        setStageTitle(`${name}: ${a.name} vs ${b.name}`);
+        showBanner(a.name.toUpperCase() + ' VS ' + b.name.toUpperCase(), name, 1500);
+        await wait(1200);
+
+        const survivors = await runMatch([a,b], 1);
+        const winner = survivors[0] || a; // safety fallback
+        const loser = winner === a ? b : a;
+        winner.winCount += 1;
+        winner.status = 'qualified';
+        loser.status = 'eliminated';
+        currentFixtures[i].status = 'done';
+        currentFixtures[i].winner = winner;
+        winners.push(winner);
+        refreshPanels();
+        showBanner(winner.name.toUpperCase() + ' WINS', name + ' Result', 1600);
+        logTicker(`${winner.name} defeats ${loser.name} in the ${name}.`);
+        await wait(1700);
+      }
+      roundFighters = winners;
+    }
+    return roundFighters[0];
+  }
+
+  async function runFullTournament(){
+    resetTournament();
+    showBanner('WORLD CHAMPIONSHIP', 'New Tournament Beginning', 2000);
+    logTicker('A new Flag Arena World Championship begins — 88 nations, 6 continents, one champion.');
+    await wait(2200);
+    const qualifiers = await runPlayIns();
+    const champion = await runBracket(qualifiers);
+    await crownChampion(champion);
+  }
+
+  async function runForever(){
+    while(true){
+      try{
+        await runFullTournament();
+      } catch(e){
+        console.error('Tournament error, restarting:', e);
+      }
+      await wait(2500);
+    }
+  }
+
+  // Kick off the broadcast automatically — no interaction required.
+  refreshPanels();
+  runForever();
+
+})();
+</script>
+</body>
+</html>
