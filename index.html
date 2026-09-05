@@ -71,7 +71,7 @@
   .mp-head h4{margin:0; font-family:'Teko',sans-serif; font-size:14px; font-weight:600; text-transform:uppercase; letter-spacing:.02em; white-space:nowrap;}
   .mp-tag{margin-left:auto; font-size:8.5px; font-weight:800; letter-spacing:.05em; text-transform:uppercase;
     padding:2px 6px; border-radius:9px; background:rgba(232,185,75,.15); color:var(--gold); white-space:nowrap;}
-  .mp-body{overflow-y:auto; max-height:104px; font-size:10.5px;}
+  .mp-body{overflow-y:auto; max-height:104px; font-size:10.5px; scroll-behavior:auto;}
   .mp-body::-webkit-scrollbar{width:4px;}
   .mp-body::-webkit-scrollbar-thumb{background:#2b3c5c; border-radius:3px;}
 
@@ -85,9 +85,6 @@
   .row-line .qta{font-size:9px; color:var(--mist); flex-shrink:0;}
   .row-line .badge{font-size:9.5px; font-weight:800; color:#241a02; background:var(--gold); border-radius:5px; padding:1px 5px; flex-shrink:0;}
   .row-line .rk{width:12px; font-size:9.5px; color:var(--mist); font-weight:700; flex-shrink:0;}
-
-  .alive-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(20px,1fr)); gap:3px;}
-  .alive-grid img{width:100%; aspect-ratio:4/3; object-fit:cover; border-radius:2px; box-shadow:0 0 0 1px #23324f;}
 
   /* ---------- MATCH TITLE ---------- */
   .match-title-wrap{text-align:center; flex-shrink:0;}
@@ -166,12 +163,12 @@
       <div class="mp-body" id="fixtureList"></div>
     </div>
     <div class="mini-panel">
-      <div class="mp-head"><h4>🥇 Most Wins</h4><span class="mp-tag">All-Time</span></div>
+      <div class="mp-head"><h4>🏆 Champions</h4><span class="mp-tag">All-Time</span></div>
       <div class="mp-body" id="winsList"></div>
     </div>
     <div class="mini-panel">
       <div class="mp-head"><h4>❌ Alive</h4><span class="mp-tag" id="aliveCount">88</span></div>
-      <div class="mp-body"><div class="alive-grid" id="aliveGrid"></div></div>
+      <div class="mp-body" id="aliveGrid"></div>
     </div>
   </div>
 
@@ -256,17 +253,21 @@
     this.img = new Image(); this.img.crossOrigin = 'anonymous'; this.img.src = flagUrl(code,'w160');
     this.iconSmall = flagUrl(code,'w40');
     this.hp = MAX_HP; this.alive = true; this.status = 'idle';
-    this.winCount = 0; this.flashT = 0; this.body = null;
+    this.winCount = 0; this.flashT = 0; this.body = null; this.ringOut = false;
+    this.champCount = 0; // tournaments actually WON — persists across resets, unlike winCount
   }
   Fighter.prototype.reset = function(){
-    this.hp = MAX_HP; this.alive = true; this.status = 'idle'; this.winCount = 0; this.flashT = 0; this.body = null;
+    this.hp = MAX_HP; this.alive = true; this.status = 'idle'; this.winCount = 0;
+    this.flashT = 0; this.body = null; this.ringOut = false;
+    // champCount is intentionally left untouched — it's the all-time record.
   };
-  Fighter.prototype.spawnBody = function(x,y){
-    this.hp = MAX_HP; this.alive = true; this.flashT = 0;
+  Fighter.prototype.spawnBody = function(x,y,opts){
+    opts = opts || {};
+    this.hp = MAX_HP; this.alive = true; this.flashT = 0; this.ringOut = false;
     const angle = Math.random()*Math.PI*2, speed = 2.6 + Math.random()*2.2;
     this.body = Bodies.circle(x, y, currentFighterR, {
-      restitution:0.9, friction:0.001, frictionAir:0.0018, density:0.002,
-      label:'fighter:'+this.code
+      restitution:0.9, friction:0.001, frictionAir: opts.frictionAir != null ? opts.frictionAir : 0.0018,
+      density:0.002, label:'fighter:'+this.code
     });
     Body.setVelocity(this.body, {x:Math.cos(angle)*speed, y:Math.sin(angle)*speed});
     Body.setAngularVelocity(this.body, (Math.random()-0.5)*0.08);
@@ -343,16 +344,31 @@
     const u = new SpeechSynthesisUtterance(text);
     u.rate = 1.05; u.pitch = 0.92; u.volume = 1;
     if(chosenVoice) u.voice = chosenVoice;
-    u.onend = ()=>{ isSpeaking=false; pumpSpeechQueue(); };
-    u.onerror = ()=>{ isSpeaking=false; pumpSpeechQueue(); };
+    let settled = false;
+    const finish = ()=>{ if(settled) return; settled = true; isSpeaking = false; pumpSpeechQueue(); };
+    u.onend = finish;
+    u.onerror = finish;
     isSpeaking = true;
-    speechSynthesis.speak(u);
+    try{
+      if(speechSynthesis.paused) speechSynthesis.resume();
+      speechSynthesis.speak(u);
+    }catch(e){ finish(); return; }
+    // Safety net: some browsers/webviews never reliably fire onend, which
+    // would otherwise jam the queue permanently. Force it clear after a
+    // generous timeout based on the text length.
+    setTimeout(finish, Math.max(1500, text.length * 80));
   }
   function announce(text){
     if(!soundOn || !speechSupported) return;
     speechQueue.push(text);
     if(speechQueue.length > 3) speechQueue.shift(); // don't let a backlog build up and lag behind the action
     pumpSpeechQueue();
+  }
+  // Chrome has a long-standing bug where speechSynthesis silently stops
+  // producing audio after ~15s idle unless nudged — a cheap periodic
+  // resume() keeps the engine alive for a broadcast that runs for hours.
+  if(speechSupported){
+    setInterval(()=>{ try{ speechSynthesis.resume(); }catch(e){} }, 4000);
   }
 
   function unlockAudio(){
@@ -380,6 +396,19 @@
       speechQueue = []; isSpeaking = false;
     } else {
       unlockAudio();
+      tone(440,0.12,'sine',0.14);
+      // Speak directly (not via the queue) so this happens synchronously
+      // inside the click gesture — the most reliable way to confirm/unlock
+      // voice on strict platforms like iOS Safari.
+      if(speechSupported){
+        try{
+          speechSynthesis.cancel();
+          const u = new SpeechSynthesisUtterance('Sound on');
+          u.rate = 1.05; u.volume = 1;
+          if(chosenVoice) u.voice = chosenVoice;
+          speechSynthesis.speak(u);
+        }catch(e){}
+      }
     }
   });
 
@@ -391,30 +420,34 @@
   engine.world.gravity.x = 0; engine.world.gravity.y = 0;
 
   const SIZE = 800, CX = 400, CY = 400;
-  let currentArenaR = 300, currentFighterR = 34;
+  // Arena is now a FIXED size matching the Africa play-in (20 nations) —
+  // it no longer shrinks for smaller matches. This keeps "distance to the
+  // wall" meaningful and consistent for knockback tuning at every stage.
+  const ARENA_FIXED_R = Math.round(Math.min(372, 210 + 20*8)); // = 370
+  let currentArenaR = ARENA_FIXED_R, currentFighterR = 34;
 
-  function arenaRadiusFor(n){ return Math.round(Math.min(372, 210 + n*8)); }
   function fighterRadiusFor(n){ return Math.round(Math.max(16, 46 - Math.max(0,n-2)*1.15)); }
 
   function setupArenaFor(n){
-    currentArenaR = arenaRadiusFor(n);
+    currentArenaR = ARENA_FIXED_R;
     currentFighterR = fighterRadiusFor(n);
   }
 
   function spawnRing(list){
     const n = list.length;
+    const isDuel = n === 2;
     list.forEach((f,i)=>{
       const a = (i/n) * Math.PI*2 + (Math.random()-0.5)*0.2;
       const rad = currentArenaR * (0.4 + Math.random()*0.25);
       f.status = 'battling';
-      f.spawnBody(CX + Math.cos(a)*rad, CY + Math.sin(a)*rad);
+      f.spawnBody(CX + Math.cos(a)*rad, CY + Math.sin(a)*rad, { frictionAir: isDuel ? 0.006 : 0.0018 });
     });
   }
 
   // Perfect circular boundary: reflect any fighter that pushes past the edge.
   // Position is nudged slightly *inside* the true edge (buffer) so a fighter
   // getting jostled by neighbours right at the wall doesn't re-trigger the
-  // bounce every frame and appear "stuck".
+  // bounce every frame and appear "stuck". Used for play-in rumbles.
   function containFighter(f){
     if(!f.body || !f.alive) return;
     const p = f.body.position;
@@ -437,6 +470,21 @@
     }
   }
 
+  // Ring-out check for 1v1 duels: no hard wall here — a big hit can send a
+  // fighter sailing past the ring entirely. If it travels far enough past
+  // the boundary, that's an instant knockout. Otherwise the ongoing centre
+  // pull (applyCenterPull) reels it back in for another clash.
+  function checkRingOut(f){
+    if(!f.body || !f.alive) return;
+    const dx = f.body.position.x - CX, dy = f.body.position.y - CY;
+    const dist = Math.hypot(dx,dy);
+    const ringOutR = currentArenaR + currentFighterR*3;
+    if(dist > ringOutR){
+      f.ringOut = true;
+      f.hp = 0; // shared elimination handling in the main loop takes it from here
+    }
+  }
+
   // =========================================================
   // MATCH RUNNER
   // =========================================================
@@ -447,11 +495,13 @@
   let particles = [];
   let shake = 0;
   let hype = 0;
+  let eliminationOrder = []; // tracks who died, in order, during the current match
 
   function runMatch(list, targetRemaining){
     return new Promise(resolve=>{
       activeFighters = list;
       matchTargetRemaining = targetRemaining;
+      eliminationOrder = [];
       setupArenaFor(list.length);
       spawnRing(list);
       matchRunning = true;
@@ -477,10 +527,31 @@
         fa.hp -= dmg; fb.hp -= dmg;
         fa.flashT = 0.15; fb.flashT = 0.15;
         hype = Math.min(100, hype + 3);
-        const mid = Vector.add(pair.bodyA.position, Vector.mult(Vector.sub(pair.bodyB.position,pair.bodyA.position), 0.5));
+        const diff = Vector.sub(pair.bodyB.position, pair.bodyA.position);
+        const dist = Vector.magnitude(diff) || 1;
+        const normal = Vector.div(diff, dist);
+        const mid = Vector.add(pair.bodyA.position, Vector.mult(diff, 0.5));
         spawnBurst(mid.x, mid.y, '#ffffff', Math.min(14, 4+speed));
         shake = Math.min(10, shake + speed*0.3);
         sfxHit();
+
+        // Explicit knockback so a hit visibly launches both flags apart —
+        // the ongoing centre-pull then reels them back in for the next clash.
+        // Scaled by hit speed: a light graze only nudges a fighter toward the
+        // wall, while a full-power collision sends them flying out to it.
+        const isDuelHit = activeFighters.length <= 2;
+        const speedFrac = Math.min(1, speed / 12); // 0 = grazing tap, 1 = full-power hit
+        const kb = isDuelHit
+          ? 2 + speedFrac * 16    // light hit barely moves them, hard hit reaches the wall
+          : 2.5 + speedFrac * 13; // rumbles stay a touch gentler so packed fighters don't all clear out at once
+        Body.setVelocity(pair.bodyA, {
+          x: pair.bodyA.velocity.x - normal.x*kb,
+          y: pair.bodyA.velocity.y - normal.y*kb
+        });
+        Body.setVelocity(pair.bodyB, {
+          x: pair.bodyB.velocity.x + normal.x*kb,
+          y: pair.bodyB.velocity.y + normal.y*kb
+        });
       }
     });
   });
@@ -494,9 +565,20 @@
 
   function checkMatchEnd(){
     if(!matchRunning) return;
-    const alive = activeFighters.filter(f=>f.alive);
+    let alive = activeFighters.filter(f=>f.alive);
     if(alive.length <= matchTargetRemaining){
       matchRunning = false;
+      // Guard against overshoot: if several fighters died in the very same
+      // physics tick (common in a big rumble, or a mutual KO in a duel),
+      // fewer than targetRemaining could be left alive. Top back up with
+      // whoever was eliminated most recently so the caller always gets
+      // exactly targetRemaining fighters back — otherwise downstream code
+      // (bracket pairing) can end up with an odd, broken qualifier count.
+      if(alive.length < matchTargetRemaining){
+        const need = matchTargetRemaining - alive.length;
+        const topUp = eliminationOrder.slice(-need).filter(f=>!alive.includes(f));
+        alive = alive.concat(topUp);
+      }
       const resolve = matchResolve; matchResolve = null;
       if(resolve) resolve(alive);
     }
@@ -506,19 +588,39 @@
   // This keeps play-in rumbles from piling up against the wall (which is what
   // caused the "stuck" look) and keeps 1v1 duels centred in frame. It's weak
   // enough that collisions and bounces still dominate the motion.
+  // Play-in rumbles: gentle force-based nudge back toward centre, working
+  // alongside the wall bounce so bodies don't park at the edge.
   function applyCenterPull(){
-    const n = activeFighters.length;
     activeFighters.forEach(f=>{
       if(!f.alive || !f.body) return;
       const dx = CX - f.body.position.x, dy = CY - f.body.position.y;
       const dist = Math.hypot(dx,dy) || 1;
       const nx = dx/dist, ny = dy/dist;
-      // Stronger pull the closer to the wall it is; a touch weaker overall
-      // for big rosters so the rumble still has room to spread out.
       const edgeZone = dist > currentArenaR*0.55;
-      const base = n <= 2 ? 0.0020 : 0.0011;
-      const mag = edgeZone ? base : base*0.2;
+      const mag = edgeZone ? 0.0011 : 0.00022;
       Body.applyForce(f.body, f.body.position, {x:nx*mag, y:ny*mag});
+    });
+  }
+
+  // Duels: directly steer velocity toward the centre by blending a fraction
+  // of it in every frame. A force-based pull turned out to be negligible
+  // against a knockback's speed (huge coasts with a 10-20s gap between
+  // clashes); steering the velocity itself gives a predictable "arcs back
+  // within a couple of seconds" return no matter how hard the hit was.
+  function applyDuelSteering(){
+    activeFighters.forEach(f=>{
+      if(!f.alive || !f.body) return;
+      const dx = CX - f.body.position.x, dy = CY - f.body.position.y;
+      const dist = Math.hypot(dx,dy) || 1;
+      const nx = dx/dist, ny = dy/dist;
+      const desiredSpeed = 2.3;
+      const desiredVX = nx*desiredSpeed, desiredVY = ny*desiredSpeed;
+      const blend = dist > currentArenaR*0.4 ? 0.05 : 0.014;
+      const v = f.body.velocity;
+      Body.setVelocity(f.body, {
+        x: v.x + (desiredVX - v.x)*blend,
+        y: v.y + (desiredVY - v.y)*blend
+      });
     });
   }
 
@@ -568,15 +670,16 @@
   function refreshPanels(){ renderWins(); renderAlive(); renderFixtures(); }
 
   function renderWins(){
-    const top = [...ALL_FIGHTERS].filter(f=>f.winCount>0).sort((a,b)=>b.winCount-a.winCount).slice(0,10);
+    // "Champions" tracks tournaments actually WON, not individual match wins.
+    const top = [...ALL_FIGHTERS].filter(f=>f.champCount>0).sort((a,b)=>b.champCount-a.champCount).slice(0,10);
     const el = document.getElementById('winsList');
-    if(top.length === 0){ el.innerHTML = '<div style="font-size:10.5px;color:var(--mist);">No wins yet.</div>'; return; }
+    if(top.length === 0){ el.innerHTML = '<div style="font-size:10.5px;color:var(--mist);">No champions yet.</div>'; return; }
     el.innerHTML = top.map((f,i)=>`
       <div class="row-line">
         <div class="rk">${i+1}</div>
         <img src="${f.iconSmall}" alt="">
         <div class="nm">${f.name}</div>
-        <div class="badge">${f.winCount}</div>
+        <div class="badge">${f.champCount}</div>
       </div>`).join('');
   }
 
@@ -584,7 +687,10 @@
     const alive = ALL_FIGHTERS.filter(f=> f.status !== 'eliminated');
     document.getElementById('aliveCount').textContent = alive.length;
     document.getElementById('aliveGrid').innerHTML = alive.map(f=>
-      `<img src="${f.iconSmall}" title="${f.name}" alt="${f.name}">`
+      `<div class="row-line">
+        <img src="${f.iconSmall}" alt="">
+        <div class="nm">${f.name}</div>
+      </div>`
     ).join('');
   }
 
@@ -615,6 +721,27 @@
         </div>`;
       }).join('');
     }
+  }
+
+  // ---- Auto-scroll the three side panels (no manual scrolling needed) ----
+  function initAutoScroll(){
+    const els = Array.from(document.querySelectorAll('.mp-body'));
+    const paused = els.map(()=>false);
+    function step(){
+      els.forEach((el,i)=>{
+        if(paused[i]) return;
+        const max = el.scrollHeight - el.clientHeight;
+        if(max > 2){
+          el.scrollTop += 0.4;
+          if(el.scrollTop >= max - 0.5){
+            paused[i] = true;
+            setTimeout(()=>{ el.scrollTop = 0; paused[i] = false; }, 1400);
+          }
+        }
+      });
+      requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
   }
 
   // =========================================================
@@ -683,18 +810,21 @@
     lastTime = now;
 
     if(matchRunning){
-      applyCenterPull();
+      const isDuel = activeFighters.length === 2;
+      if(isDuel) applyDuelSteering(); else applyCenterPull();
       Engine.update(engine, dt*1000);
       activeFighters.forEach(f=>{
         if(!f.alive) return;
-        containFighter(f);
+        if(isDuel) checkRingOut(f); else containFighter(f);
         if(f.flashT>0) f.flashT = Math.max(0, f.flashT-dt);
         if(f.hp <= 0){
           f.hp = 0; f.alive = false;
-          spawnBurst(f.body.position.x, f.body.position.y, '#e4483c', 22);
-          shake = Math.min(12, shake+4);
+          const color = f.ringOut ? '#e8b94b' : '#e4483c';
+          spawnBurst(f.body.position.x, f.body.position.y, color, 22);
+          shake = Math.min(12, shake + (f.ringOut ? 7 : 4));
           sfxEliminate();
           f.removeBody();
+          eliminationOrder.push(f);
         }
       });
       checkMatchEnd();
@@ -731,6 +861,7 @@
   }
 
   async function crownChampion(fighter){
+    fighter.champCount += 1; // this is what "Champions" panel ranks by
     fighter.status = 'champion';
     refreshPanels();
     setStage('Champion');
@@ -738,7 +869,7 @@
     logTicker(fighter.name + ' conquered all 88 nations to win the Flag Arena World Championship!');
     document.getElementById('champFlag').src = flagUrl(fighter.code,'w320');
     document.getElementById('champName').textContent = fighter.name;
-    document.getElementById('champStat').textContent = 'Won ' + fighter.winCount + ' consecutive matches this tournament.';
+    document.getElementById('champStat').textContent = 'Won ' + fighter.winCount + ' consecutive matches this tournament — championship #' + fighter.champCount + '.';
     document.getElementById('champOverlay').classList.remove('hidden');
     confettiBurst();
     sfxChampion();
@@ -841,10 +972,15 @@
         currentFixtures[i].winner = winner;
         winners.push(winner);
         refreshPanels();
-        showBanner(winner.name.toUpperCase() + ' WINS', name + ' Result', 1500);
-        logTicker(`${winner.name} defeats ${loser.name} in the ${name}.`);
+        const ringOutWin = loser.ringOut;
+        showBanner(winner.name.toUpperCase() + (ringOutWin ? ' — RING OUT!' : ' WINS'), name + ' Result', 1500);
+        logTicker(ringOutWin
+          ? `${winner.name} knocks ${loser.name} clean out of the arena in the ${name}!`
+          : `${winner.name} defeats ${loser.name} in the ${name}.`);
         sfxWin();
-        announce(`${winner.name} defeats ${loser.name}.`);
+        announce(ringOutWin
+          ? `${winner.name} knocks ${loser.name} out of the arena!`
+          : `${winner.name} defeats ${loser.name}.`);
         await wait(1600);
       }
       roundFighters = winners;
@@ -875,6 +1011,7 @@
 
   refreshPanels();
   runForever();
+  initAutoScroll();
 
 })();
 </script>
