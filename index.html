@@ -9,100 +9,80 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
 <style>
   :root{
-    --navy-0:#070c16; --navy-1:#0c1526; --navy-2:#131f36;
-    --gold:#e8b94b; --gold-dim:#8a733a; --white:#eef2f8; --mist:#94a3c2;
-    --red:#e4483c; --green:#3ecf8e; --shadow:rgba(0,0,0,.5);
+    --bg-0:#05070d; --bg-1:#0a0e18;
+    --panel-0:#0d1220; --panel-1:#0a0e18; --line:#20283e;
+    --gold:#e8b94b; --white:#eef2f8; --mist:#8b96b3;
+    --cyan:#5fe0f0; --pink:#e8828c; --green-tick:#3ecf8e; --red:#e4483c;
+    --shadow:rgba(0,0,0,.55);
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;height:100%;overflow:hidden;}
   body{
     background:
-      radial-gradient(ellipse 1200px 600px at 50% -10%, rgba(232,185,75,.08), transparent 60%),
-      radial-gradient(ellipse 900px 900px at 85% 110%, rgba(62,207,142,.05), transparent 55%),
-      var(--navy-0);
+      radial-gradient(1px 1px at 8% 12%, rgba(255,255,255,.5), transparent),
+      radial-gradient(1px 1px at 22% 68%, rgba(255,255,255,.35), transparent),
+      radial-gradient(1.5px 1.5px at 38% 22%, rgba(255,255,255,.4), transparent),
+      radial-gradient(1px 1px at 55% 82%, rgba(255,255,255,.3), transparent),
+      radial-gradient(1.5px 1.5px at 72% 15%, rgba(255,255,255,.45), transparent),
+      radial-gradient(1px 1px at 85% 55%, rgba(255,255,255,.3), transparent),
+      radial-gradient(1px 1px at 92% 88%, rgba(255,255,255,.4), transparent),
+      radial-gradient(1.5px 1.5px at 15% 90%, rgba(255,255,255,.3), transparent),
+      radial-gradient(1px 1px at 65% 45%, rgba(255,255,255,.25), transparent),
+      radial-gradient(ellipse 900px 700px at 50% 40%, rgba(95,224,240,.05), transparent 60%),
+      var(--bg-0);
     color:var(--white); font-family:'Inter',sans-serif; height:100%;
   }
   .display{font-family:'Teko',sans-serif; letter-spacing:.02em;}
 
   .shell{
-    height:100%; max-width:1100px; margin:0 auto;
-    display:flex; flex-direction:column; gap:7px;
-    padding:8px 10px; overflow:hidden;
+    height:100%; max-width:640px; margin:0 auto;
+    display:flex; flex-direction:column; gap:8px;
+    padding:10px 12px; overflow:hidden;
   }
 
   /* ---------- TOP BAR ---------- */
-  .topbar{
-    display:flex; align-items:center; gap:10px; flex-wrap:wrap; flex-shrink:0;
-    padding:6px 12px; border-radius:10px;
-    background:linear-gradient(180deg, var(--navy-2), var(--navy-1));
-    border:1px solid #23324f; box-shadow:0 6px 18px var(--shadow);
+  .topbar{ display:flex; align-items:center; gap:8px; flex-shrink:0; }
+  .pill{
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:5px 14px; border-radius:10px; background:var(--panel-0);
+    border:1px solid var(--line); box-shadow:0 4px 12px var(--shadow); min-width:64px;
   }
-  .live-badge{
-    display:flex; align-items:center; gap:5px; padding:3px 8px; border-radius:16px;
-    background:rgba(228,72,60,.15); border:1px solid rgba(228,72,60,.5);
-    font-size:9.5px; font-weight:800; letter-spacing:.1em; color:#ff8b7f; flex-shrink:0;
-  }
-  .live-dot{width:6px; height:6px; border-radius:50%; background:var(--red); animation:pulse 1.4s infinite;}
-  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.25;}}
-  .brand{font-size:12.5px; font-weight:700; text-transform:uppercase; color:var(--mist); white-space:nowrap;}
-  .brand span{color:var(--gold);}
-
-  .stat-boxes{display:flex; gap:6px; margin-left:auto;}
-  .stat-box{
-    text-align:center; padding:3px 12px; border-radius:7px; background:#0e1830; border:1px solid #23324f;
-  }
-  .stat-box .lbl{font-size:8.5px; color:var(--mist); letter-spacing:.1em; text-transform:uppercase;}
-  .stat-box .val{font-family:'Teko',sans-serif; font-size:18px; font-weight:600; color:var(--gold); line-height:1.1; white-space:nowrap;}
-  .sound-toggle{
-    flex-shrink:0; width:28px; height:28px; border-radius:50%; margin-left:6px;
-    background:#0e1830; border:1px solid #23324f; color:var(--gold); font-size:13px;
+  .pill-label{font-size:8px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--mist);}
+  .pill-val{font-family:'Teko',sans-serif; font-size:19px; font-weight:600; color:var(--white); line-height:1.1; white-space:nowrap;}
+  .pill-globe{flex-direction:row; gap:6px;}
+  .pill-globe .pill-val{font-size:16px; color:var(--cyan);}
+  .topbar .spacer{flex:1;}
+  .icon-btn{
+    flex-shrink:0; width:34px; height:34px; border-radius:10px;
+    background:var(--panel-0); border:1px solid var(--line); color:var(--cyan); font-size:14px;
     cursor:pointer; display:flex; align-items:center; justify-content:center;
   }
-  .sound-toggle:active{transform:scale(.92);}
+  .icon-btn:active{transform:scale(.92);}
+  .icon-btn.muted{color:var(--mist); opacity:.6;}
 
-  /* ---------- PANELS ROW ---------- */
-  .panels-row{display:flex; gap:7px; flex-shrink:0;}
-  .mini-panel{
-    flex:1; min-width:0; background:linear-gradient(180deg, var(--navy-2), var(--navy-1));
-    border:1px solid #23324f; border-radius:10px; padding:7px 9px;
-    display:flex; flex-direction:column; box-shadow:0 6px 16px var(--shadow);
+  /* ---------- PROGRESS BAR ---------- */
+  .progress-track{
+    position:relative; height:6px; border-radius:4px; background:#111826; flex-shrink:0;
+    border:1px solid var(--line); overflow:hidden;
   }
-  .mp-head{display:flex; align-items:center; gap:5px; margin-bottom:5px; flex-shrink:0;}
-  .mp-head h4{margin:0; font-family:'Teko',sans-serif; font-size:14px; font-weight:600; text-transform:uppercase; letter-spacing:.02em; white-space:nowrap;}
-  .mp-tag{margin-left:auto; font-size:8.5px; font-weight:800; letter-spacing:.05em; text-transform:uppercase;
-    padding:2px 6px; border-radius:9px; background:rgba(232,185,75,.15); color:var(--gold); white-space:nowrap;}
-  .mp-body{overflow-y:auto; max-height:104px; font-size:10.5px; scroll-behavior:auto;}
-  .mp-body::-webkit-scrollbar{width:4px;}
-  .mp-body::-webkit-scrollbar-thumb{background:#2b3c5c; border-radius:3px;}
-
-  .row-line{display:flex; align-items:center; gap:5px; padding:3px 2px; border-bottom:1px solid #1c2a45;}
-  .row-line:last-child{border-bottom:none;}
-  .row-line img{width:15px; height:11px; object-fit:cover; border-radius:2px; flex-shrink:0;}
-  .row-line .nm{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  .row-line .nm.lose{opacity:.4; text-decoration:line-through;}
-  .row-line .vs{color:var(--mist); font-size:9px; flex-shrink:0;}
-  .row-line .tick{font-size:9.5px; flex-shrink:0; width:12px; text-align:center;}
-  .row-line .qta{font-size:9px; color:var(--mist); flex-shrink:0;}
-  .row-line .badge{font-size:9.5px; font-weight:800; color:#241a02; background:var(--gold); border-radius:5px; padding:1px 5px; flex-shrink:0;}
-  .row-line .rk{width:12px; font-size:9.5px; color:var(--mist); font-weight:700; flex-shrink:0;}
-
-  /* ---------- MATCH TITLE ---------- */
-  .match-title-wrap{text-align:center; flex-shrink:0;}
-  .match-title{
-    font-family:'Teko',sans-serif; font-weight:600; font-size:clamp(18px,3.4vw,32px);
-    letter-spacing:.03em; text-transform:uppercase; line-height:1.05;
-    background:linear-gradient(90deg,#eef2f8,var(--gold));
-    -webkit-background-clip:text; background-clip:text; color:transparent;
+  .progress-fill{
+    height:100%; width:0%; border-radius:4px;
+    background:linear-gradient(90deg, var(--green-tick), var(--gold));
+    transition:width .4s ease;
   }
-  .ticker{font-size:10.5px; color:var(--mist); min-height:13px; margin-top:1px;}
+  .progress-tick{position:absolute; top:50%; width:3px; height:3px; background:rgba(255,255,255,.5); transform:translateY(-50%); border-radius:1px;}
 
   /* ---------- ARENA ---------- */
-  .arena-outer{flex:1; min-height:0; display:flex; align-items:center; justify-content:center;}
+  .arena-outer{flex:1; min-height:0; display:flex; align-items:center; justify-content:center; position:relative;}
+  .arena-outer::before{
+    content:''; position:absolute; inset:-6%; border-radius:50%; pointer-events:none;
+    background:
+      repeating-radial-gradient(circle at 50% 50%, transparent 0, transparent 34px, rgba(95,224,240,.035) 35px, transparent 36px);
+    opacity:.7;
+  }
   .arena-wrap{
     position:relative; height:100%; width:auto; aspect-ratio:1/1; max-width:100%; max-height:100%;
-    border-radius:20px; overflow:hidden;
-    background:radial-gradient(circle at 50% 42%, #16233c 0%, #0d1729 55%, #070c16 100%);
-    border:1px solid #23324f; box-shadow:0 16px 40px var(--shadow), inset 0 0 80px rgba(0,0,0,.6);
+    border-radius:50%; overflow:hidden;
   }
   canvas{display:block; width:100%; height:100%;}
 
@@ -111,35 +91,58 @@
     text-align:center; pointer-events:none; opacity:0; transition:opacity .25s ease, transform .25s ease; z-index:5;
   }
   .banner.show{opacity:1; transform:translate(-50%,-50%) scale(1);}
-  .banner .display{font-size:clamp(28px,6vw,52px); font-weight:700; color:var(--white); text-transform:uppercase; text-shadow:0 6px 24px rgba(0,0,0,.6);}
-  .banner .sub{font-size:11px; letter-spacing:.2em; color:var(--gold); text-transform:uppercase; margin-top:-6px;}
-
-  .hype-badge{
-    position:absolute; top:10px; right:10px; z-index:4; display:flex; align-items:center; gap:5px;
-    background:rgba(7,12,22,.6); border:1px solid #2b3c5c; border-radius:16px; padding:4px 8px;
-  }
-  .hype-track{width:52px; height:5px; border-radius:4px; background:#0a1220; overflow:hidden;}
-  .hype-fill{height:100%; width:0%; background:linear-gradient(90deg, var(--gold), var(--red)); transition:width .18s ease;}
-  .hype-lbl{font-size:8px; color:var(--mist); letter-spacing:.06em; text-transform:uppercase;}
+  .banner .display{font-size:clamp(26px,5.6vw,48px); font-weight:700; color:var(--white); text-transform:uppercase; text-shadow:0 6px 24px rgba(0,0,0,.7);}
+  .banner .sub{font-size:11px; letter-spacing:.2em; color:var(--gold); text-transform:uppercase; margin-top:-6px; text-shadow:0 2px 8px rgba(0,0,0,.7);}
 
   .overlay{
-    position:absolute; inset:0; z-index:10; background:rgba(7,12,22,.9); backdrop-filter:blur(6px);
-    display:flex; align-items:center; justify-content:center; padding:20px;
+    position:absolute; inset:0; z-index:10; background:rgba(5,7,13,.9); backdrop-filter:blur(6px);
+    display:flex; align-items:center; justify-content:center; padding:20px; border-radius:50%;
   }
   .overlay.hidden{display:none;}
-  .card{width:100%; max-width:420px; text-align:center;}
-  .card h2{font-family:'Teko',sans-serif; font-size:clamp(28px,6vw,40px); font-weight:700; margin:0 0 4px; text-transform:uppercase;}
-  .card p.lede{color:var(--mist); font-size:11.5px; margin:0 0 4px;}
-  .champ-flag{width:110px; height:76px; object-fit:cover; border-radius:9px; margin:0 auto 12px;
-    box-shadow:0 12px 34px rgba(0,0,0,.5), 0 0 0 4px var(--navy-2), 0 0 0 6px var(--gold);}
+  .card{width:100%; max-width:340px; text-align:center;}
+  .card h2{font-family:'Teko',sans-serif; font-size:clamp(26px,5.6vw,38px); font-weight:700; margin:0 0 4px; text-transform:uppercase;}
+  .card p.lede{color:var(--mist); font-size:11px; margin:0 0 4px;}
+  .champ-flag{width:100px; height:70px; object-fit:cover; border-radius:9px; margin:0 auto 12px;
+    box-shadow:0 12px 34px rgba(0,0,0,.5), 0 0 0 4px var(--panel-0), 0 0 0 6px var(--gold);}
 
-  @keyframes fall{to{transform:translateY(420px) rotate(360deg); opacity:0;}}
+  @keyframes fall{to{transform:translateY(380px) rotate(360deg); opacity:0;}}
+
+  /* ---------- WATERMARK ---------- */
+  .watermark{
+    text-align:center; flex-shrink:0; font-size:13px; font-weight:600; letter-spacing:.02em;
+    color:rgba(255,255,255,.16); margin-top:-4px;
+  }
+
+  /* ---------- BOTTOM PANELS ---------- */
+  .panels-row{display:flex; gap:8px; flex-shrink:0;}
+  .panel{
+    flex:1; min-width:0; background:linear-gradient(180deg, var(--panel-0), var(--panel-1));
+    border:1px solid var(--line); border-radius:12px; padding:9px 10px;
+    display:flex; flex-direction:column; box-shadow:0 6px 16px var(--shadow);
+  }
+  .panel-head{display:flex; align-items:center; gap:6px; margin-bottom:4px; flex-shrink:0;}
+  .panel-icon{font-size:12px;}
+  .panel-head h4{margin:0; font-family:'Teko',sans-serif; font-size:15px; font-weight:600; text-transform:uppercase; letter-spacing:.03em; color:var(--white); white-space:nowrap;}
+  .panel-count{
+    margin-left:auto; font-size:10px; font-weight:800; letter-spacing:.03em;
+    padding:2px 8px; border-radius:9px; background:rgba(232,185,75,.14); color:var(--gold); white-space:nowrap;
+  }
+  .wc-sub{text-align:center; margin-bottom:4px; flex-shrink:0;}
+  .wc-stage{font-family:'Teko',sans-serif; font-size:16px; font-weight:600; letter-spacing:.03em; color:var(--white); text-transform:uppercase;}
+  .wc-tag{font-size:9.5px; font-weight:700; letter-spacing:.04em; color:var(--gold); text-transform:uppercase; margin-top:-2px;}
+  .panel-body{overflow-y:auto; max-height:118px; font-size:10.5px;}
+  .panel-body::-webkit-scrollbar{width:4px;}
+  .panel-body::-webkit-scrollbar-thumb{background:#26314a; border-radius:3px;}
+
+  .row-line{display:flex; align-items:center; gap:6px; padding:3.5px 2px; border-bottom:1px solid #182238;}
+  .row-line:last-child{border-bottom:none;}
+  .row-line img{width:16px; height:12px; object-fit:cover; border-radius:2px; flex-shrink:0; box-shadow:0 0 0 1px rgba(255,255,255,.15);}
+  .row-line .nm{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .row-line .rk{width:20px; font-size:9.5px; color:var(--mist); font-weight:700; flex-shrink:0;}
+  .row-line .chk{color:var(--green-tick); font-size:11px; flex-shrink:0;}
 
   @media (max-width:640px){
-    .panels-row{flex-direction:row;}
-    .mini-panel{padding:5px 6px;}
-    .mp-body{max-height:80px;}
-    .stat-box{padding:3px 7px;}
+    .panel-body{max-height:96px;}
   }
 </style>
 </head>
@@ -147,43 +150,19 @@
 <div class="shell">
 
   <div class="topbar">
-    <div class="live-badge"><div class="live-dot"></div>LIVE</div>
-    <div class="brand">Flag<span>Arena</span> World Championship</div>
-    <div class="stat-boxes">
-      <div class="stat-box"><div class="lbl">Cup</div><div class="val" id="cupNum">1</div></div>
-      <div class="stat-box"><div class="lbl">Stage</div><div class="val" id="stageVal" style="font-size:13px;">Loading</div></div>
-      <div class="stat-box"><div class="lbl">Match</div><div class="val" id="matchNum">0/37</div></div>
-    </div>
-    <button id="soundToggle" class="sound-toggle" title="Toggle sound">🔊</button>
+    <div class="pill"><div class="pill-label">Cup</div><div class="pill-val" id="cupNum">1</div></div>
+    <div class="pill"><div class="pill-label">Stage</div><div class="pill-val" id="stageVal" style="font-size:14px;">Loading</div></div>
+    <div class="pill pill-globe">🌐<div class="pill-val" id="matchNum">0/37</div></div>
+    <div class="spacer"></div>
+    <button id="soundToggle" class="icon-btn" title="Toggle sound">🔊</button>
+    <button id="settingsToggle" class="icon-btn" title="Toggle announcer voice">⚙️</button>
   </div>
 
-  <div class="panels-row">
-    <div class="mini-panel">
-      <div class="mp-head"><h4>🏆 Schedule</h4><span class="mp-tag" id="scheduleTag">Play-In</span></div>
-      <div class="mp-body" id="fixtureList"></div>
-    </div>
-    <div class="mini-panel">
-      <div class="mp-head"><h4>🏆 Champions</h4><span class="mp-tag">All-Time</span></div>
-      <div class="mp-body" id="winsList"></div>
-    </div>
-    <div class="mini-panel">
-      <div class="mp-head"><h4>❌ Alive</h4><span class="mp-tag" id="aliveCount">88</span></div>
-      <div class="mp-body" id="aliveGrid"></div>
-    </div>
-  </div>
-
-  <div class="match-title-wrap">
-    <div class="match-title" id="matchTitle">LOADING FLAGS…</div>
-    <div class="ticker" id="tickerText">Preparing the world championship…</div>
-  </div>
+  <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
 
   <div class="arena-outer">
     <div class="arena-wrap" id="arenaWrap">
       <canvas id="arena"></canvas>
-      <div class="hype-badge">
-        <span class="hype-lbl">Hype</span>
-        <div class="hype-track"><div class="hype-fill" id="hypeFill"></div></div>
-      </div>
       <div class="banner" id="banner">
         <div class="display" id="bannerText">LOADING</div>
         <div class="sub" id="bannerSub">Please wait</div>
@@ -197,6 +176,23 @@
           <p class="lede">Next tournament begins shortly…</p>
         </div>
       </div>
+    </div>
+  </div>
+
+  <div class="watermark">@WorldFlagsCup</div>
+
+  <div class="panels-row">
+    <div class="panel">
+      <div class="panel-head"><span class="panel-icon">🌐</span><h4>World Cup</h4></div>
+      <div class="wc-sub">
+        <div class="wc-stage" id="wcStage">PLAY-IN</div>
+        <div class="wc-tag" id="wcTag">SUMO WINNERS ✓</div>
+      </div>
+      <div class="panel-body" id="worldCupList"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><span class="panel-icon">⚔</span><h4>Contenders</h4><span class="panel-count" id="contendersCount">88</span></div>
+      <div class="panel-body" id="contendersList"></div>
     </div>
   </div>
 
@@ -289,6 +285,7 @@
   // Both are generated in-browser, so no audio files need to be hosted.
   // =========================================================
   let soundOn = true;
+  let announcerOn = true;
   let audioCtx = null;
   function getCtx(){
     if(!window.AudioContext && !window.webkitAudioContext) return null;
@@ -360,7 +357,7 @@
     setTimeout(finish, Math.max(1500, text.length * 80));
   }
   function announce(text){
-    if(!soundOn || !speechSupported) return;
+    if(!soundOn || !announcerOn || !speechSupported) return;
     speechQueue.push(text);
     if(speechQueue.length > 3) speechQueue.shift(); // don't let a backlog build up and lag behind the action
     pumpSpeechQueue();
@@ -392,6 +389,7 @@
   soundToggleBtn.addEventListener('click', ()=>{
     soundOn = !soundOn;
     soundToggleBtn.textContent = soundOn ? '🔊' : '🔇';
+    soundToggleBtn.classList.toggle('muted', !soundOn);
     if(!soundOn){
       if(speechSupported) speechSynthesis.cancel();
       speechQueue = []; isSpeaking = false;
@@ -401,7 +399,7 @@
       // Speak directly (not via the queue) so this happens synchronously
       // inside the click gesture — the most reliable way to confirm/unlock
       // voice on strict platforms like iOS Safari.
-      if(speechSupported){
+      if(speechSupported && announcerOn){
         try{
           speechSynthesis.cancel();
           const u = new SpeechSynthesisUtterance('Sound on');
@@ -411,6 +409,16 @@
         }catch(e){}
       }
     }
+  });
+
+  // Settings (gear) button: toggles the announcer's voice only, leaving
+  // sound effects on — a lighter-touch control than the master mute.
+  const settingsToggleBtn = document.getElementById('settingsToggle');
+  settingsToggleBtn.addEventListener('click', ()=>{
+    announcerOn = !announcerOn;
+    settingsToggleBtn.classList.toggle('muted', !announcerOn);
+    settingsToggleBtn.title = announcerOn ? 'Toggle announcer voice' : 'Announcer voice muted';
+    if(!announcerOn && speechSupported){ speechSynthesis.cancel(); speechQueue = []; isSpeaking = false; }
   });
 
   // =========================================================
@@ -482,7 +490,7 @@
   // Ring-out check for 1v1 duels: no hard wall here — a big hit can send a
   // fighter sailing past the ring entirely. If it travels far enough past
   // the boundary, that's an instant knockout. Otherwise the ongoing centre
-  // pull (applyCenterPull) reels it back in for another clash.
+  // pull (applyDuelSteering) reels it back in for another clash.
   function checkRingOut(f){
     if(!f.body || !f.alive) return;
     const dx = f.body.position.x - CX, dy = f.body.position.y - CY;
@@ -503,7 +511,6 @@
   let matchResolve = null;
   let particles = [];
   let shake = 0;
-  let hype = 0;
   let eliminationOrder = []; // tracks who died, in order, during the current match
 
   function runMatch(list, targetRemaining){
@@ -514,7 +521,10 @@
       setupArenaFor(list.length);
       spawnRing(list);
       matchRunning = true;
-      matchResolve = resolve;
+      // Live-update the Contenders count/list while the match is actually
+      // running, not just at the discrete start/end of each match.
+      const liveTimer = setInterval(refreshPanels, 400);
+      matchResolve = (result)=>{ clearInterval(liveTimer); resolve(result); };
       refreshPanels();
     });
   }
@@ -532,10 +542,17 @@
       if(fa && fb){
         const rv = Vector.sub(pair.bodyA.velocity, pair.bodyB.velocity);
         const speed = Vector.magnitude(rv);
-        const dmg = Math.max(3, Math.min(36, speed * 2.1));
-        fa.hp -= dmg; fb.hp -= dmg;
-        fa.flashT = 0.15; fb.flashT = 0.15;
-        hype = Math.min(100, hype + 3);
+        const isDuelHit = activeFighters.length <= 2;
+        // In a crowded play-in rumble, plenty of contact is just fighters
+        // jostling past each other — only a hit above this speed counts as
+        // real damage. Duels always deal damage, since every clash there is
+        // a deliberate collision rather than incidental crowding.
+        const dealsDamage = isDuelHit || speed >= 3.2;
+        if(dealsDamage){
+          const dmg = Math.max(3, Math.min(36, speed * 2.1));
+          fa.hp -= dmg; fb.hp -= dmg;
+          fa.flashT = 0.15; fb.flashT = 0.15;
+        }
         const diff = Vector.sub(pair.bodyB.position, pair.bodyA.position);
         const dist = Vector.magnitude(diff) || 1;
         const normal = Vector.div(diff, dist);
@@ -548,7 +565,8 @@
         // the ongoing centre-pull then reels them back in for the next clash.
         // Scaled by hit speed: a light graze only nudges a fighter toward the
         // wall, while a full-power collision sends them flying out to it.
-        const isDuelHit = activeFighters.length <= 2;
+        // This still applies even on a non-damaging graze, so a crowd still
+        // visibly jostles apart without necessarily losing health.
         const speedFrac = Math.min(1, speed / 12); // 0 = grazing tap, 1 = full-power hit
         const kb = isDuelHit
           ? 5 + speedFrac * 29   // duels: light hit still nudges, hard hit rockets them clear to the wall
@@ -593,10 +611,6 @@
     }
   }
 
-  // Every fighter gets a gentle, continuous pull back toward the arena centre.
-  // This keeps play-in rumbles from piling up against the wall (which is what
-  // caused the "stuck" look) and keeps 1v1 duels centred in frame. It's weak
-  // enough that collisions and bounces still dominate the motion.
   // Play-in rumbles: gentle force-based nudge back toward centre, working
   // alongside the wall bounce so bodies don't park at the edge.
   function applyCenterPull(){
@@ -614,9 +628,9 @@
   // Duels: a weak, constant FORCE pulling back toward the centre (not a
   // velocity override). This is deliberately gentle so a hard knockback can
   // still carry a fighter out toward the wall before being reeled back in —
-  // the old version blended velocity toward a fixed inward speed every
-  // frame, which snapped fighters back so hard that every clash happened
-  // in the same spot at the same approach speed, regardless of hit power.
+  // a velocity-blend approach snapped fighters back so hard that every
+  // clash happened in the same spot at the same approach speed, regardless
+  // of hit power.
   function applyDuelSteering(){
     activeFighters.forEach(f=>{
       if(!f.alive || !f.body) return;
@@ -641,16 +655,30 @@
   }
 
   const stageValEl = document.getElementById('stageVal');
+  const wcStageEl = document.getElementById('wcStage');
+  const wcTagEl = document.getElementById('wcTag');
   const matchNumEl = document.getElementById('matchNum');
   const cupNumEl = document.getElementById('cupNum');
-  const matchTitleEl = document.getElementById('matchTitle');
-  const tickerEl = document.getElementById('tickerText');
-  function setStage(t){ stageValEl.textContent = t; }
-  function setMatchTitle(t){ matchTitleEl.textContent = t; }
-  function logTicker(t){ tickerEl.textContent = t; }
+  const progressFillEl = document.getElementById('progressFill');
+
+  let currentPhase = 'playin'; // 'playin' | 'bracket' | 'champion' — drives the World Cup panel's tagline
+  function tagForPhase(){
+    if(currentPhase === 'champion') return 'CHAMPION CROWNED ✓';
+    if(currentPhase === 'bracket') return 'DUEL WINNERS ✓';
+    return 'SUMO WINNERS ✓';
+  }
+  function setStage(t){
+    stageValEl.textContent = t;
+    wcStageEl.textContent = t.toUpperCase();
+    wcTagEl.textContent = tagForPhase();
+  }
 
   let matchIndex = 0, cupCount = 0;
-  function bumpMatchIndex(){ matchIndex++; matchNumEl.textContent = matchIndex + '/' + TOTAL_MATCHES; }
+  function bumpMatchIndex(){
+    matchIndex++;
+    matchNumEl.textContent = matchIndex + '/' + TOTAL_MATCHES;
+    progressFillEl.style.width = Math.min(100, (matchIndex/TOTAL_MATCHES)*100) + '%';
+  }
 
   function wait(ms){ return new Promise(r=> setTimeout(r, ms)); }
   function shuffle(arr){
@@ -666,74 +694,52 @@
   const roundNameFor = n => ({32:'Round of 32',16:'Round of 16',8:'Quarterfinal',4:'Semifinal',2:'Final'}[n] || (n+' remain'));
 
   // ---- Panel rendering ----
-  let fixtureMode = 'playin';
-  let continentStatus = CONTINENTS.map(c=>({...c, status:'upcoming', remain:c.list.length}));
-  let currentFixtures = [];
+  // "World Cup" panel: a rolling log of nations that have qualified/advanced
+  // so far this tournament, most recent first.
+  let qualifiedLog = [];
+  function logQualified(fighters){
+    qualifiedLog = qualifiedLog.concat(fighters);
+    if(qualifiedLog.length > 40) qualifiedLog = qualifiedLog.slice(-40);
+    renderWorldCup();
+  }
 
-  function refreshPanels(){ renderWins(); renderAlive(); renderFixtures(); }
+  function refreshPanels(){ renderWorldCup(); renderContenders(); }
 
-  function renderWins(){
-    // "Champions" tracks tournaments actually WON, not individual match wins.
-    const top = [...ALL_FIGHTERS].filter(f=>f.champCount>0).sort((a,b)=>b.champCount-a.champCount).slice(0,10);
-    const el = document.getElementById('winsList');
-    if(top.length === 0){ el.innerHTML = '<div style="font-size:10.5px;color:var(--mist);">No champions yet.</div>'; return; }
-    el.innerHTML = top.map((f,i)=>`
+  function renderWorldCup(){
+    const el = document.getElementById('worldCupList');
+    if(qualifiedLog.length === 0){
+      el.innerHTML = '<div style="font-size:10.5px;color:var(--mist);">No qualifiers yet.</div>';
+      return;
+    }
+    const rows = [...qualifiedLog].reverse();
+    el.innerHTML = rows.map(f=>`
       <div class="row-line">
-        <div class="rk">${i+1}</div>
         <img src="${f.iconSmall}" alt="">
         <div class="nm">${f.name}</div>
-        <div class="badge">${f.champCount}</div>
+        <div class="chk">✓</div>
       </div>`).join('');
   }
 
-  function renderAlive(){
+  function renderContenders(){
     const alive = ALL_FIGHTERS.filter(f=> f.status !== 'eliminated');
-    document.getElementById('aliveCount').textContent = alive.length;
-    document.getElementById('aliveGrid').innerHTML = alive.map(f=>
-      `<div class="row-line">
+    document.getElementById('contendersCount').textContent = alive.length;
+    const el = document.getElementById('contendersList');
+    el.innerHTML = alive.map((f,i)=>`
+      <div class="row-line">
+        <div class="rk">#${i+1}</div>
         <img src="${f.iconSmall}" alt="">
         <div class="nm">${f.name}</div>
-      </div>`
-    ).join('');
+      </div>`).join('');
   }
 
-  function renderFixtures(){
-    const tagEl = document.getElementById('scheduleTag');
-    const listEl = document.getElementById('fixtureList');
-    if(fixtureMode === 'playin'){
-      tagEl.textContent = 'Play-In';
-      listEl.innerHTML = continentStatus.map(c=>{
-        const icon = c.status==='done' ? '✅' : (c.status==='live' ? '🔴' : '⏳');
-        return `<div class="row-line">
-          <div class="nm">${c.name}</div>
-          <div class="qta">${c.status==='upcoming' ? c.list.length+'→'+c.quota : c.remain+'→'+c.quota}</div>
-          <div class="tick">${icon}</div>
-        </div>`;
-      }).join('');
-    } else {
-      tagEl.textContent = currentFixtures.length ? roundNameFor(currentFixtures.length*2) : 'Bracket';
-      listEl.innerHTML = currentFixtures.map(fx=>{
-        const icon = fx.status==='done' ? '✅' : (fx.status==='live' ? '🔴' : '⏳');
-        const aLose = fx.winner && fx.winner!==fx.a ? 'lose' : '';
-        const bLose = fx.winner && fx.winner!==fx.b ? 'lose' : '';
-        return `<div class="row-line">
-          <img src="${fx.a.iconSmall}"><div class="nm ${aLose}">${fx.a.name}</div>
-          <div class="vs">vs</div>
-          <div class="nm ${bLose}" style="text-align:right;">${fx.b.name}</div><img src="${fx.b.iconSmall}">
-          <div class="tick">${icon}</div>
-        </div>`;
-      }).join('');
-    }
-  }
-
-  // ---- Auto-scroll the three side panels (no manual scrolling needed) ----
+  // ---- Auto-scroll the two bottom panels (no manual scrolling needed) ----
   // Tracks scroll position ourselves and re-applies it every frame, rather
   // than trusting the browser to preserve scrollTop across the panels'
-  // frequent content refreshes (fixtures re-render every ~350ms during
-  // play-ins) — that's what made the old version look like it wasn't
-  // scrolling at all.
+  // frequent content refreshes (which re-render every ~400ms during a
+  // running match) — that's what made an earlier version look like it
+  // wasn't scrolling at all.
   function initAutoScroll(){
-    const els = Array.from(document.querySelectorAll('.mp-body'));
+    const els = Array.from(document.querySelectorAll('.panel-body'));
     const state = els.map(()=>({ pos: 0, paused: false }));
     function step(){
       els.forEach((el,i)=>{
@@ -763,18 +769,45 @@
   const ctx = canvas.getContext('2d');
 
   function drawArenaFloor(){
+    // Soccer-pitch styled floor: green base, faint mowed stripes, a centre
+    // circle and halfway line, then a glowing cyan ring with an inner
+    // dashed track ring — clipped to the arena circle.
     ctx.save();
-    ctx.beginPath(); ctx.arc(CX,CY,currentArenaR,0,Math.PI*2); ctx.closePath();
-    const grad = ctx.createRadialGradient(CX,CY,10,CX,CY,currentArenaR);
-    grad.addColorStop(0,'#1c2c4a'); grad.addColorStop(0.7,'#12203a'); grad.addColorStop(1,'#0a1220');
-    ctx.fillStyle = grad; ctx.fill(); ctx.restore();
+    ctx.beginPath(); ctx.arc(CX,CY,currentArenaR,0,Math.PI*2); ctx.closePath(); ctx.clip();
+
+    ctx.fillStyle = '#2e7d35';
+    ctx.fillRect(CX-currentArenaR, CY-currentArenaR, currentArenaR*2, currentArenaR*2);
+
+    const stripes = 12, stripeW = (currentArenaR*2)/stripes;
+    for(let i=0;i<stripes;i++){
+      if(i%2===0){
+        ctx.fillStyle = 'rgba(255,255,255,0.035)';
+        ctx.fillRect(CX-currentArenaR + i*stripeW, CY-currentArenaR, stripeW, currentArenaR*2);
+      }
+    }
+
+    const vgn = ctx.createRadialGradient(CX,CY,currentArenaR*0.25,CX,CY,currentArenaR);
+    vgn.addColorStop(0,'rgba(0,0,0,0)');
+    vgn.addColorStop(1,'rgba(0,0,0,0.4)');
+    ctx.fillStyle = vgn;
+    ctx.fillRect(CX-currentArenaR, CY-currentArenaR, currentArenaR*2, currentArenaR*2);
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(CX, CY-currentArenaR); ctx.lineTo(CX, CY+currentArenaR); ctx.stroke();
+    ctx.beginPath(); ctx.arc(CX,CY,currentArenaR*0.26,0,Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(CX,CY,3,0,Math.PI*2); ctx.fillStyle='rgba(255,255,255,0.6)'; ctx.fill();
+    ctx.restore();
 
     ctx.save();
-    ctx.strokeStyle = 'rgba(232,185,75,.22)'; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.arc(CX,CY,currentArenaR,0,Math.PI*2); ctx.stroke();
-    ctx.strokeStyle = 'rgba(148,163,194,.12)';
-    ctx.beginPath(); ctx.arc(CX,CY,currentArenaR*0.62,0,Math.PI*2); ctx.stroke();
-    ctx.beginPath(); ctx.arc(CX,CY,currentArenaR*0.28,0,Math.PI*2); ctx.stroke();
+    ctx.shadowColor = 'rgba(95,224,240,.65)'; ctx.shadowBlur = 16;
+    ctx.strokeStyle = 'rgba(95,224,240,.95)'; ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.arc(CX,CY,currentArenaR-2,0,Math.PI*2); ctx.stroke();
+    ctx.restore();
+
+    ctx.save();
+    ctx.strokeStyle = 'rgba(232,130,140,.55)'; ctx.lineWidth = 2;
+    ctx.setLineDash([7,7]);
+    ctx.beginPath(); ctx.arc(CX,CY,currentArenaR-11,0,Math.PI*2); ctx.stroke();
     ctx.restore();
   }
 
@@ -797,7 +830,7 @@
 
     ctx.save(); ctx.translate(x,y);
     ctx.beginPath(); ctx.arc(0,0,rr,0,Math.PI*2); ctx.lineWidth = 2.5;
-    ctx.strokeStyle = hpFrac>0.4 ? 'rgba(238,242,248,.55)' : 'rgba(228,72,60,.85)'; ctx.stroke();
+    ctx.strokeStyle = hpFrac>0.4 ? 'rgba(238,242,248,.75)' : 'rgba(228,72,60,.85)'; ctx.stroke();
     ctx.restore();
 
     ctx.save(); ctx.translate(x,y); ctx.rotate(-Math.PI/2);
@@ -840,8 +873,6 @@
       });
       checkMatchEnd();
     }
-    hype = Math.max(0, hype - dt*4);
-    document.getElementById('hypeFill').style.width = hype + '%';
 
     ctx.save(); ctx.clearRect(0,0,SIZE,SIZE);
     if(shake > 0.1){ ctx.translate((Math.random()-0.5)*shake, (Math.random()-0.5)*shake); shake *= 0.85; } else { shake = 0; }
@@ -872,12 +903,12 @@
   }
 
   async function crownChampion(fighter){
-    fighter.champCount += 1; // this is what "Champions" panel ranks by
+    fighter.champCount += 1; // shown as "championship #N" below
     fighter.status = 'champion';
+    currentPhase = 'champion';
     refreshPanels();
     setStage('Champion');
-    setMatchTitle('🏆 ' + fighter.name.toUpperCase() + ' — WORLD CHAMPION');
-    logTicker(fighter.name + ' conquered all 88 nations to win the Flag Arena World Championship!');
+    logQualified([fighter]);
     document.getElementById('champFlag').src = flagUrl(fighter.code,'w320');
     document.getElementById('champName').textContent = fighter.name;
     document.getElementById('champStat').textContent = 'Won ' + fighter.winCount + ' consecutive matches this tournament — championship #' + fighter.champCount + '.';
@@ -894,49 +925,36 @@
   // =========================================================
   function resetTournament(){
     ALL_FIGHTERS.forEach(f=> f.reset());
-    continentStatus = CONTINENTS.map(c=>({...c, status:'upcoming', remain:c.list.length}));
-    currentFixtures = [];
-    fixtureMode = 'playin';
+    qualifiedLog = [];
     activeFighters = [];
     particles = [];
     matchIndex = 0;
     matchNumEl.textContent = '0/' + TOTAL_MATCHES;
+    progressFillEl.style.width = '0%';
     refreshPanels();
   }
 
   async function runPlayIns(){
-    fixtureMode = 'playin';
+    currentPhase = 'playin';
     setStage('Play-Ins');
     const qualifiers = [];
     for(let ci=0; ci<CONTINENTS.length; ci++){
       const cont = CONTINENTS[ci];
       const roster = cont.list.map(([code])=> registry[code]);
-      continentStatus[ci].status = 'live';
-      continentStatus[ci].remain = roster.length;
       bumpMatchIndex();
       refreshPanels();
-      setMatchTitle(cont.name.toUpperCase() + ' PLAY-IN');
-      logTicker(`${cont.name} Play-In starting — ${roster.length} nations battle for ${cont.quota} spots.`);
       showBanner(cont.name.toUpperCase(), `Top ${cont.quota} Qualify`, 1500);
       sfxStart();
       announce(`${cont.name} play-in starting!`);
       await wait(1500);
 
-      const remainTimer = setInterval(()=>{
-        continentStatus[ci].remain = roster.filter(f=>f.alive).length;
-        renderFixtures();
-      }, 350);
-
       const survivors = await runMatch(roster, cont.quota);
-      clearInterval(remainTimer);
 
       survivors.forEach(f=>{ f.winCount += 1; f.status = 'qualified'; });
       roster.filter(f=> !survivors.includes(f)).forEach(f=> f.status = 'eliminated');
-      continentStatus[ci].status = 'done';
-      continentStatus[ci].remain = cont.quota;
       qualifiers.push(...survivors);
+      logQualified(survivors);
       refreshPanels();
-      logTicker(`${cont.name} complete — qualified: ${survivors.map(s=>s.name).join(', ')}`);
       showBanner(cont.quota + ' QUALIFIED', cont.name + ' Play-In Complete', 1700);
       sfxWin();
       announce(`${cont.name} play-in complete. ${survivors.length} nations qualify.`);
@@ -946,28 +964,23 @@
   }
 
   async function runBracket(qualifiers){
-    fixtureMode = 'bracket';
+    currentPhase = 'bracket';
     let roundFighters = shuffle(qualifiers);
     while(roundFighters.length > 1){
       const n = roundFighters.length;
       const name = roundNameFor(n);
       setStage(name);
       const pairs = makePairs(roundFighters);
-      currentFixtures = pairs.map(([a,b])=>({a,b,status:'upcoming',winner:null}));
       roundFighters.forEach(f=> f.status = 'qualified');
       refreshPanels();
-      setMatchTitle(name.toUpperCase() + ' DRAWN');
-      logTicker(`${name} bracket set — ${pairs.length} ${pairs.length===1?'match':'matches'} to decide the next round.`);
       await wait(1400);
 
       const winners = [];
       for(let i=0;i<pairs.length;i++){
         const [a,b] = pairs[i];
-        currentFixtures[i].status = 'live';
         a.status = 'battling'; b.status = 'battling';
         bumpMatchIndex();
         refreshPanels();
-        setMatchTitle(a.name.toUpperCase() + ' ⚔ ' + b.name.toUpperCase());
         showBanner(a.name.toUpperCase() + ' VS ' + b.name.toUpperCase(), name, 1400);
         sfxStart();
         announce(`Next round: ${a.name} versus ${b.name}.`);
@@ -979,15 +992,11 @@
         winner.winCount += 1;
         winner.status = 'qualified';
         loser.status = 'eliminated';
-        currentFixtures[i].status = 'done';
-        currentFixtures[i].winner = winner;
         winners.push(winner);
+        logQualified([winner]);
         refreshPanels();
         const ringOutWin = loser.ringOut;
         showBanner(winner.name.toUpperCase() + (ringOutWin ? ' — RING OUT!' : ' WINS'), name + ' Result', 1500);
-        logTicker(ringOutWin
-          ? `${winner.name} knocks ${loser.name} clean out of the arena in the ${name}!`
-          : `${winner.name} defeats ${loser.name} in the ${name}.`);
         sfxWin();
         announce(ringOutWin
           ? `${winner.name} knocks ${loser.name} out of the arena!`
@@ -1003,8 +1012,6 @@
     cupCount++;
     cupNumEl.textContent = cupCount;
     resetTournament();
-    setMatchTitle('NEW TOURNAMENT BEGINNING');
-    logTicker('A new Flag Arena World Championship begins — 88 nations, 6 continents, one champion.');
     showBanner('WORLD CHAMPIONSHIP', 'Cup ' + cupCount, 1800);
     await wait(2000);
     const qualifiers = await runPlayIns();
