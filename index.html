@@ -46,6 +46,7 @@
     margin: auto;
     display:flex; flex-direction:column; gap:8px;
     padding:10px 12px; overflow:hidden;
+    container-type: size; container-name: frame;
   }
 
   /* ---------- TOP BAR ---------- */
@@ -148,9 +149,31 @@
   .row-line .rk{width:20px; font-size:9.5px; color:var(--mist); font-weight:700; flex-shrink:0;}
   .row-line .chk{color:var(--green-tick); font-size:11px; flex-shrink:0;}
 
-  @media (max-width:640px){
-    .panel-body{max-height:96px;}
-  }
+  /* ---------- PROPORTIONAL SCALING ----------
+     Everything above uses fixed px sizes tuned for one particular window
+     size — that's exactly why it looked fine at one browser zoom level but
+     cramped or overflowing at another. These rules re-express the same
+     elements as a percentage of the frame's own rendered size (via CSS
+     container query units), so the whole UI scales together no matter how
+     big or small the 9:16 frame ends up being. Browsers without container
+     query unit support simply ignore these (invalid unit = whole
+     declaration dropped) and keep the fixed px versions above. */
+  .pill{ min-width: clamp(44px, 15cqw, 70px); padding: clamp(4px, 1cqh, 6px) clamp(8px, 3.6cqw, 15px); }
+  .pill-label{ font-size: clamp(6.5px, 1cqh, 9px); }
+  .pill-val{ font-size: clamp(13px, 2.4cqh, 20px); }
+  .pill-globe .pill-val{ font-size: clamp(11px, 2cqh, 17px); }
+  .icon-btn{ width: clamp(24px, 8.5cqw, 36px); height: clamp(24px, 4.4cqh, 36px); font-size: clamp(10px, 3.6cqw, 15px); }
+  .topbar{ gap: clamp(4px, 1.8cqw, 9px); }
+  .progress-track{ height: clamp(4px, 0.8cqh, 7px); }
+  .panel-head h4{ font-size: clamp(11px, 1.8cqh, 16px); }
+  .panel-count{ font-size: clamp(8px, 1.15cqh, 11px); }
+  .wc-stage{ font-size: clamp(12px, 1.9cqh, 17px); }
+  .wc-tag{ font-size: clamp(7.5px, 1.05cqh, 10px); }
+  .panel-body{ max-height: clamp(60px, 15cqh, 160px); font-size: clamp(9px, 1.2cqh, 11px); }
+  .panel{ padding: clamp(6px, 1.1cqh, 10px) clamp(7px, 2.8cqw, 11px); }
+  .panels-row{ gap: clamp(5px, 1.8cqw, 9px); }
+  .row-line img{ width: clamp(13px, 4cqw, 17px); height: clamp(10px, 3cqw, 13px); }
+  .watermark{ font-size: clamp(10px, 1.5cqh, 14px); }
 </style>
 </head>
 <body>
@@ -267,7 +290,7 @@
   Fighter.prototype.spawnBody = function(x,y,opts){
     opts = opts || {};
     this.maxHp = opts.hp || MAX_HP; this.hp = this.maxHp; this.alive = true; this.flashT = 0; this.ringOut = false;
-    const angle = Math.random()*Math.PI*2;
+    const angle = opts.angle != null ? opts.angle : Math.random()*Math.PI*2;
     const speed = opts.speed != null ? opts.speed : (2.6 + Math.random()*2.2);
     this.body = Bodies.circle(x, y, currentFighterR, {
       restitution:0.9, friction:0.001, frictionAir: opts.frictionAir != null ? opts.frictionAir : 0.0018,
@@ -452,14 +475,33 @@
   function spawnRing(list){
     const n = list.length;
     const isDuel = n === 2;
-    // Play-in rumbles get a bigger HP pool than duels so the play-in stage
-    // takes noticeably longer to whittle down — more of a slow-burn rumble.
-    const hp = isDuel ? MAX_HP : MAX_HP * 2;
+    // Play-ins were taking twice as long as duels (2x HP) — halving that
+    // back down to the same pool as a duel, so play-ins run half as long.
+    const hp = MAX_HP;
     // Rumbles also start slower and lose speed faster between hits (higher
     // air friction) so a crowded play-in reads as a rumble, not a blur.
     // Duels get lower friction so a hard knockback can actually carry.
     const frictionAir = isDuel ? 0.0025 : 0.0032;
-    const speed = isDuel ? undefined : (1.2 + Math.random()*1.2);
+
+    if(isDuel){
+      // Spawn the two duelists at opposite ends of a random diameter,
+      // aimed straight at each other. Two independent random angles could
+      // previously land them almost on top of one another (an immediate,
+      // jarring collision right as the match started) or send them drifting
+      // off in unrelated directions with nothing pulling them together.
+      const theta = Math.random()*Math.PI*2;
+      const rad = currentArenaR * 0.5;
+      const chargeSpeed = 2.8 + Math.random()*0.8;
+      list[0].status = 'battling';
+      list[0].spawnBody(CX + Math.cos(theta)*rad, CY + Math.sin(theta)*rad,
+        { frictionAir, hp, angle: theta + Math.PI, speed: chargeSpeed });
+      list[1].status = 'battling';
+      list[1].spawnBody(CX + Math.cos(theta+Math.PI)*rad, CY + Math.sin(theta+Math.PI)*rad,
+        { frictionAir, hp, angle: theta, speed: chargeSpeed });
+      return;
+    }
+
+    const speed = 1.2 + Math.random()*1.2;
     list.forEach((f,i)=>{
       const a = (i/n) * Math.PI*2 + (Math.random()-0.5)*0.2;
       const rad = currentArenaR * (0.4 + Math.random()*0.25);
@@ -543,6 +585,16 @@
     return (f && f.body === body) ? f : null;
   }
 
+  // Knockback is queued here and applied once, right after the physics step
+  // finishes for the frame (see loop()) — NOT immediately inside this event.
+  // Matter fires 'collisionStart' before its own solver has resolved the
+  // contact (restitution, overlap correction), so setting velocity here
+  // directly could get partially overwritten or double-applied by the
+  // solver's own response later in the same step — an inconsistent race
+  // that showed up as jittery, unpredictable bounces, especially
+  // noticeable in a 1-on-1 duel with only one collision to watch.
+  let pendingKnockbacks = [];
+
   Matter.Events.on(engine, 'collisionStart', (event)=>{
     event.pairs.forEach(pair=>{
       const fa = fighterFromBody(pair.bodyA), fb = fighterFromBody(pair.bodyB);
@@ -578,14 +630,7 @@
         const kb = isDuelHit
           ? 5 + speedFrac * 29   // duels: light hit still nudges, hard hit rockets them clear to the wall
           : 1.6 + speedFrac * 6; // rumbles: calmer knockback so a crowded play-in doesn't feel frantic
-        Body.setVelocity(pair.bodyA, {
-          x: pair.bodyA.velocity.x - normal.x*kb,
-          y: pair.bodyA.velocity.y - normal.y*kb
-        });
-        Body.setVelocity(pair.bodyB, {
-          x: pair.bodyB.velocity.x + normal.x*kb,
-          y: pair.bodyB.velocity.y + normal.y*kb
-        });
+        pendingKnockbacks.push({ bodyA: pair.bodyA, bodyB: pair.bodyB, normal, kb });
       }
     });
   });
@@ -632,19 +677,26 @@
     });
   }
 
-  // Duels: a weak, constant FORCE pulling back toward the centre (not a
-  // velocity override). This is deliberately gentle so a hard knockback can
-  // still carry a fighter out toward the wall before being reeled back in —
-  // a velocity-blend approach snapped fighters back so hard that every
-  // clash happened in the same spot at the same approach speed, regardless
-  // of hit power.
+  // Duels: gently blend velocity toward "pointing back at the centre" each
+  // frame. A pure force here (tried previously) conserves sideways
+  // velocity, which can let two fighters settle into a stable orbit around
+  // the centre rather than ever slowing down for a clean clash — a likely
+  // cause of the reported glitchiness. Blending toward an inward velocity
+  // kills that sideways drift over time, while a small blend factor still
+  // lets a hard knockback carry a fighter out toward the wall first.
   function applyDuelSteering(){
     activeFighters.forEach(f=>{
       if(!f.alive || !f.body) return;
       const dx = CX - f.body.position.x, dy = CY - f.body.position.y;
       const dist = Math.hypot(dx,dy) || 1;
       const nx = dx/dist, ny = dy/dist;
-      Body.applyForce(f.body, f.body.position, {x:nx*0.0016, y:ny*0.0016});
+      const desiredSpeed = 2.2;
+      const blend = 0.03;
+      const v = f.body.velocity;
+      Body.setVelocity(f.body, {
+        x: v.x + (nx*desiredSpeed - v.x)*blend,
+        y: v.y + (ny*desiredSpeed - v.y)*blend
+      });
     });
   }
 
@@ -864,6 +916,19 @@
       const isDuel = activeFighters.length === 2;
       if(isDuel) applyDuelSteering(); else applyCenterPull();
       Engine.update(engine, dt*1000);
+      if(pendingKnockbacks.length){
+        pendingKnockbacks.forEach(pk=>{
+          Body.setVelocity(pk.bodyA, {
+            x: pk.bodyA.velocity.x - pk.normal.x*pk.kb,
+            y: pk.bodyA.velocity.y - pk.normal.y*pk.kb
+          });
+          Body.setVelocity(pk.bodyB, {
+            x: pk.bodyB.velocity.x + pk.normal.x*pk.kb,
+            y: pk.bodyB.velocity.y + pk.normal.y*pk.kb
+          });
+        });
+        pendingKnockbacks = [];
+      }
       activeFighters.forEach(f=>{
         if(!f.alive) return;
         if(isDuel) checkRingOut(f); else containFighter(f);
