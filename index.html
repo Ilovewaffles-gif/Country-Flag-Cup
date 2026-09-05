@@ -263,7 +263,7 @@
   };
   Fighter.prototype.spawnBody = function(x,y,opts){
     opts = opts || {};
-    this.hp = MAX_HP; this.alive = true; this.flashT = 0; this.ringOut = false;
+    this.hp = opts.hp || MAX_HP; this.alive = true; this.flashT = 0; this.ringOut = false;
     const angle = Math.random()*Math.PI*2, speed = 2.6 + Math.random()*2.2;
     this.body = Bodies.circle(x, y, currentFighterR, {
       restitution:0.9, friction:0.001, frictionAir: opts.frictionAir != null ? opts.frictionAir : 0.0018,
@@ -436,11 +436,14 @@
   function spawnRing(list){
     const n = list.length;
     const isDuel = n === 2;
+    // Play-in rumbles get a bigger HP pool than duels so the play-in stage
+    // takes noticeably longer to whittle down — more of a slow-burn rumble.
+    const hp = isDuel ? MAX_HP : MAX_HP * 2;
     list.forEach((f,i)=>{
       const a = (i/n) * Math.PI*2 + (Math.random()-0.5)*0.2;
       const rad = currentArenaR * (0.4 + Math.random()*0.25);
       f.status = 'battling';
-      f.spawnBody(CX + Math.cos(a)*rad, CY + Math.sin(a)*rad, { frictionAir: isDuel ? 0.006 : 0.0018 });
+      f.spawnBody(CX + Math.cos(a)*rad, CY + Math.sin(a)*rad, { frictionAir: isDuel ? 0.006 : 0.0018, hp });
     });
   }
 
@@ -542,7 +545,7 @@
         const isDuelHit = activeFighters.length <= 2;
         const speedFrac = Math.min(1, speed / 12); // 0 = grazing tap, 1 = full-power hit
         const kb = isDuelHit
-          ? 2 + speedFrac * 16    // light hit barely moves them, hard hit reaches the wall
+          ? 5 + speedFrac * 29    // duels: light hit still nudges, hard hit rockets them clear to the wall
           : 2.5 + speedFrac * 13; // rumbles stay a touch gentler so packed fighters don't all clear out at once
         Body.setVelocity(pair.bodyA, {
           x: pair.bodyA.velocity.x - normal.x*kb,
