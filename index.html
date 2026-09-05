@@ -264,7 +264,8 @@
   Fighter.prototype.spawnBody = function(x,y,opts){
     opts = opts || {};
     this.hp = opts.hp || MAX_HP; this.alive = true; this.flashT = 0; this.ringOut = false;
-    const angle = Math.random()*Math.PI*2, speed = 2.6 + Math.random()*2.2;
+    const angle = Math.random()*Math.PI*2;
+    const speed = opts.speed != null ? opts.speed : (2.6 + Math.random()*2.2);
     this.body = Bodies.circle(x, y, currentFighterR, {
       restitution:0.9, friction:0.001, frictionAir: opts.frictionAir != null ? opts.frictionAir : 0.0018,
       density:0.002, label:'fighter:'+this.code
@@ -439,11 +440,16 @@
     // Play-in rumbles get a bigger HP pool than duels so the play-in stage
     // takes noticeably longer to whittle down — more of a slow-burn rumble.
     const hp = isDuel ? MAX_HP : MAX_HP * 2;
+    // Rumbles also start slower and lose speed faster between hits (higher
+    // air friction) so a crowded play-in reads as a rumble, not a blur.
+    // Duels get lower friction so a hard knockback can actually carry.
+    const frictionAir = isDuel ? 0.0025 : 0.0032;
+    const speed = isDuel ? undefined : (1.2 + Math.random()*1.2);
     list.forEach((f,i)=>{
       const a = (i/n) * Math.PI*2 + (Math.random()-0.5)*0.2;
       const rad = currentArenaR * (0.4 + Math.random()*0.25);
       f.status = 'battling';
-      f.spawnBody(CX + Math.cos(a)*rad, CY + Math.sin(a)*rad, { frictionAir: isDuel ? 0.006 : 0.0018, hp });
+      f.spawnBody(CX + Math.cos(a)*rad, CY + Math.sin(a)*rad, { frictionAir, hp, speed });
     });
   }
 
@@ -545,8 +551,8 @@
         const isDuelHit = activeFighters.length <= 2;
         const speedFrac = Math.min(1, speed / 12); // 0 = grazing tap, 1 = full-power hit
         const kb = isDuelHit
-          ? 5 + speedFrac * 29    // duels: light hit still nudges, hard hit rockets them clear to the wall
-          : 2.5 + speedFrac * 13; // rumbles stay a touch gentler so packed fighters don't all clear out at once
+          ? 5 + speedFrac * 29   // duels: light hit still nudges, hard hit rockets them clear to the wall
+          : 1.6 + speedFrac * 6; // rumbles: calmer knockback so a crowded play-in doesn't feel frantic
         Body.setVelocity(pair.bodyA, {
           x: pair.bodyA.velocity.x - normal.x*kb,
           y: pair.bodyA.velocity.y - normal.y*kb
@@ -605,25 +611,19 @@
     });
   }
 
-  // Duels: directly steer velocity toward the centre by blending a fraction
-  // of it in every frame. A force-based pull turned out to be negligible
-  // against a knockback's speed (huge coasts with a 10-20s gap between
-  // clashes); steering the velocity itself gives a predictable "arcs back
-  // within a couple of seconds" return no matter how hard the hit was.
+  // Duels: a weak, constant FORCE pulling back toward the centre (not a
+  // velocity override). This is deliberately gentle so a hard knockback can
+  // still carry a fighter out toward the wall before being reeled back in —
+  // the old version blended velocity toward a fixed inward speed every
+  // frame, which snapped fighters back so hard that every clash happened
+  // in the same spot at the same approach speed, regardless of hit power.
   function applyDuelSteering(){
     activeFighters.forEach(f=>{
       if(!f.alive || !f.body) return;
       const dx = CX - f.body.position.x, dy = CY - f.body.position.y;
       const dist = Math.hypot(dx,dy) || 1;
       const nx = dx/dist, ny = dy/dist;
-      const desiredSpeed = 2.3;
-      const desiredVX = nx*desiredSpeed, desiredVY = ny*desiredSpeed;
-      const blend = dist > currentArenaR*0.4 ? 0.05 : 0.014;
-      const v = f.body.velocity;
-      Body.setVelocity(f.body, {
-        x: v.x + (desiredVX - v.x)*blend,
-        y: v.y + (desiredVY - v.y)*blend
-      });
+      Body.applyForce(f.body, f.body.position, {x:nx*0.0016, y:ny*0.0016});
     });
   }
 
@@ -727,20 +727,28 @@
   }
 
   // ---- Auto-scroll the three side panels (no manual scrolling needed) ----
+  // Tracks scroll position ourselves and re-applies it every frame, rather
+  // than trusting the browser to preserve scrollTop across the panels'
+  // frequent content refreshes (fixtures re-render every ~350ms during
+  // play-ins) — that's what made the old version look like it wasn't
+  // scrolling at all.
   function initAutoScroll(){
     const els = Array.from(document.querySelectorAll('.mp-body'));
-    const paused = els.map(()=>false);
+    const state = els.map(()=>({ pos: 0, paused: false }));
     function step(){
       els.forEach((el,i)=>{
-        if(paused[i]) return;
+        const s = state[i];
         const max = el.scrollHeight - el.clientHeight;
-        if(max > 2){
-          el.scrollTop += 0.4;
-          if(el.scrollTop >= max - 0.5){
-            paused[i] = true;
-            setTimeout(()=>{ el.scrollTop = 0; paused[i] = false; }, 1400);
+        if(max <= 2){ s.pos = 0; s.paused = false; return; }
+        if(!s.paused){
+          s.pos += 0.6;
+          if(s.pos >= max){
+            s.pos = max;
+            s.paused = true;
+            setTimeout(()=>{ s.pos = 0; s.paused = false; }, 900);
           }
         }
+        el.scrollTop = s.pos;
       });
       requestAnimationFrame(step);
     }
