@@ -458,10 +458,21 @@
   const engine = Engine.create();
   engine.world.gravity.x = 0; engine.world.gravity.y = 0;
 
-  const SIZE = 800, CX = 400, CY = 400;
-  // Arena is now a FIXED size matching the Africa play-in (20 nations) —
-  // it no longer shrinks for smaller matches. This keeps "distance to the
-  // wall" meaningful and consistent for knockback tuning at every stage.
+  // The canvas is deliberately bigger than the arena drawn on it — the
+  // arena-wrap div clips anything outside its own circular boundary (a
+  // circle inscribed in the SIZE x SIZE canvas, radius = SIZE/2), so the
+  // gap between ARENA_FIXED_R and SIZE/2 is how much room a fighter has to
+  // fly outward before visually vanishing off-screen. That gap used to be
+  // only 30 units, which wasn't enough: a fast-moving fighter can cover a
+  // large distance in a single physics step, so the elimination effect
+  // (particle burst, flash) could end up rendering just past the visible
+  // edge — the "eliminated outside the circle" bug. Widening the canvas
+  // while keeping ARENA_FIXED_R exactly the same triples that buffer to 90
+  // units without changing the arena's actual size or the play-in tuning.
+  const SIZE = 920, CX = 460, CY = 460;
+  // Arena is a FIXED size matching the Africa play-in (20 nations) — it no
+  // longer shrinks for smaller matches. This keeps "distance to the wall"
+  // meaningful and consistent for knockback tuning at every stage.
   const ARENA_FIXED_R = Math.round(Math.min(372, 210 + 20*8)); // = 370
   let currentArenaR = ARENA_FIXED_R, currentFighterR = 34;
 
@@ -546,7 +557,7 @@
   // the boundary, that's an instant knockout. Otherwise the ongoing centre
   // pull (applyDuelSteering) reels it back in for another clash.
   // Kept small and deliberately inside the arena-wrap's own visible clip
-  // radius (~400 canvas units, since the wrap is a circle cut from a square
+  // radius (~460 canvas units, since the wrap is a circle cut from a square
   // canvas) — a bigger threshold sent fighters well past where they'd
   // already visually disappeared off-screen, so the KO effect fired
   // invisibly instead of right where the fighter was last seen.
@@ -645,7 +656,20 @@
         const kb = isDuelHit
           ? (5 + speedFrac * 29) * (1 + sdT*0.4)   // duels: light hit still nudges, hard hit rockets them clear to the wall
           : (1.0 + speedFrac * 3.8) * (1 + sdT*1.8); // rumbles: ramps up during sudden death
-        pendingKnockbacks.push({ bodyA: pair.bodyA, bodyB: pair.bodyB, normal, kb });
+        // Two equal-mass bodies bouncing off each other naturally split the
+        // push evenly, so both fighters flew outward by the same amount and
+        // reached the wall at the same time — a decisive one-sided exchange
+        // never happened. For duels, randomize how the SAME total push is
+        // divided between the two (same total energy, uneven split) so one
+        // fighter often gets launched much further than the other. Rumbles
+        // keep the original even split.
+        let kbA = kb, kbB = kb;
+        if(isDuelHit){
+          const split = 0.15 + Math.random()*0.7; // one side gets 15-85% of the total
+          kbA = kb*2*split;
+          kbB = kb*2*(1-split);
+        }
+        pendingKnockbacks.push({ bodyA: pair.bodyA, bodyB: pair.bodyB, normal, kbA, kbB });
       }
     });
   });
@@ -949,12 +973,12 @@
       if(pendingKnockbacks.length){
         pendingKnockbacks.forEach(pk=>{
           Body.setVelocity(pk.bodyA, {
-            x: pk.bodyA.velocity.x - pk.normal.x*pk.kb,
-            y: pk.bodyA.velocity.y - pk.normal.y*pk.kb
+            x: pk.bodyA.velocity.x - pk.normal.x*pk.kbA,
+            y: pk.bodyA.velocity.y - pk.normal.y*pk.kbA
           });
           Body.setVelocity(pk.bodyB, {
-            x: pk.bodyB.velocity.x + pk.normal.x*pk.kb,
-            y: pk.bodyB.velocity.y + pk.normal.y*pk.kb
+            x: pk.bodyB.velocity.x + pk.normal.x*pk.kbB,
+            y: pk.bodyB.velocity.y + pk.normal.y*pk.kbB
           });
         });
         pendingKnockbacks = [];
