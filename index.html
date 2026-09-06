@@ -554,7 +554,7 @@
     if(!f.body || !f.alive) return;
     const dx = f.body.position.x - CX, dy = f.body.position.y - CY;
     const dist = Math.hypot(dx,dy);
-    const ringOutR = currentArenaR + currentFighterR*0.4;
+    const ringOutR = (currentArenaR + currentFighterR*0.4) * (1 - suddenDeathT()*0.3);
     if(dist > ringOutR){
       f.ringOut = true;
       f.hp = 0; // shared elimination handling in the main loop takes it from here
@@ -571,6 +571,7 @@
   let particles = [];
   let shake = 0;
   let eliminationOrder = []; // tracks who died, in order, during the current match
+  let matchElapsedMs = 0; // drives the sudden-death escalation below
 
   function runMatch(list, targetRemaining){
     return new Promise(resolve=>{
@@ -580,6 +581,7 @@
       setupArenaFor(list.length);
       spawnRing(list);
       matchRunning = true;
+      matchElapsedMs = 0;
       // Live-update the Contenders count/list while the match is actually
       // running, not just at the discrete start/end of each match.
       const liveTimer = setInterval(refreshPanels, 400);
@@ -612,11 +614,14 @@
         const rv = Vector.sub(pair.bodyA.velocity, pair.bodyB.velocity);
         const speed = Vector.magnitude(rv);
         const isDuelHit = activeFighters.length <= 2;
+        const sdT = suddenDeathT();
         // In a crowded play-in rumble, plenty of contact is just fighters
         // jostling past each other — only a hit above this speed counts as
         // real damage. Duels always deal damage, since every clash there is
-        // a deliberate collision rather than incidental crowding.
-        const dealsDamage = isDuelHit || speed >= 2.1;
+        // a deliberate collision rather than incidental crowding. Sudden
+        // death lowers this threshold toward 0 so a stalled match's gentle
+        // contact eventually starts counting.
+        const dealsDamage = isDuelHit || speed >= 2.1 * (1 - sdT*0.8);
         if(dealsDamage){
           const dmg = Math.max(3, Math.min(36, speed * 2.1));
           fa.hp -= dmg; fb.hp -= dmg;
@@ -638,11 +643,8 @@
         // visibly jostles apart without necessarily losing health.
         const speedFrac = Math.min(1, speed / 12); // 0 = grazing tap, 1 = full-power hit
         const kb = isDuelHit
-          ? 5 + speedFrac * 29   // duels: light hit still nudges, hard hit rockets them clear to the wall
-          : 1.0 + speedFrac * 3.8; // rumbles: lowered to compensate — applying knockback cleanly after
-                                    // the physics step (needed to fix duel jitter) made the same
-                                    // constants hit harder than before, since they're no longer partly
-                                    // cancelled out by Matter's own mid-step collision resolution
+          ? (5 + speedFrac * 29) * (1 + sdT*0.4)   // duels: light hit still nudges, hard hit rockets them clear to the wall
+          : (1.0 + speedFrac * 3.8) * (1 + sdT*1.8); // rumbles: ramps up during sudden death
         pendingKnockbacks.push({ bodyA: pair.bodyA, bodyB: pair.bodyB, normal, kb });
       }
     });
@@ -698,13 +700,13 @@
   // kills that sideways drift over time, while a small blend factor still
   // lets a hard knockback carry a fighter out toward the wall first.
   function applyDuelSteering(){
+    const blend = 0.03 + suddenDeathT()*0.15;
     activeFighters.forEach(f=>{
       if(!f.alive || !f.body) return;
       const dx = CX - f.body.position.x, dy = CY - f.body.position.y;
       const dist = Math.hypot(dx,dy) || 1;
       const nx = dx/dist, ny = dy/dist;
       const desiredSpeed = 2.2;
-      const blend = 0.03;
       const v = f.body.velocity;
       Body.setVelocity(f.body, {
         x: v.x + (nx*desiredSpeed - v.x)*blend,
@@ -764,6 +766,15 @@
     return pairs;
   }
   const roundNameFor = n => ({32:'Round of 32',16:'Round of 16',8:'Quarterfinal',4:'Semifinal',2:'Final'}[n] || (n+' remain'));
+
+  // Sudden death: guarantees a match can never stall forever. If fighters
+  // happen to settle into a low-energy standoff or keep missing each other
+  // (rare, but possible with random physics), this ramps from 0 to 1
+  // between 10s and 18s of match time, escalating knockback and pull
+  // strength until the match is forced to a decisive conclusion.
+  function suddenDeathT(){
+    return Math.max(0, Math.min(1, (matchElapsedMs - 10000) / 8000));
+  }
 
   // ---- Panel rendering ----
   // "World Cup" panel: a rolling log of nations that have qualified/advanced
@@ -927,6 +938,12 @@
 
     if(matchRunning){
       const isDuel = activeFighters.length === 2;
+      matchElapsedMs += dt*1000;
+      const sdT = isDuel ? 0 : suddenDeathT();
+      // Sudden death also gradually shrinks the rumble arena, herding any
+      // scattered survivors back into range of each other. Duels are left
+      // at the fixed radius they were tuned against.
+      if(!isDuel) currentArenaR = ARENA_FIXED_R * (1 - sdT*0.4);
       if(isDuel) applyDuelSteering(); else applyCenterPull();
       Engine.update(engine, dt*1000);
       if(pendingKnockbacks.length){
@@ -942,6 +959,37 @@
         });
         pendingKnockbacks = [];
       }
+      // Safety ceiling: several simultaneous contacts in a packed rumble
+      // (a fighter touching two or three neighbours in the same frame) can
+      // each add their own knockback, compounding into speeds far beyond
+      // any single hit's intended range (measured spikes as high as ~38
+      // against an intended single-hit max of ~5). Duels get a much higher
+      // ceiling since a hard duel hit is deliberately meant to rocket a
+      // fighter clear across the arena.
+      const speedCap = isDuel ? 42 : 8;
+      // Floor: a rumble fighter that's decayed to a near-standstill (e.g.
+      // after drifting away from the pack) can otherwise go a long time
+      // without another collision above the damage threshold, stalling the
+      // match. A small constant floor keeps everyone moving enough to keep
+      // finding fights.
+      const speedFloor = isDuel ? 0 : 0.7;
+      activeFighters.forEach(f=>{
+        if(!f.alive || !f.body) return;
+        const v = f.body.velocity;
+        const sp = Math.hypot(v.x, v.y);
+        if(sp > speedCap){
+          const s = speedCap/sp;
+          Body.setVelocity(f.body, {x:v.x*s, y:v.y*s});
+        } else if(speedFloor && sp < speedFloor){
+          if(sp < 0.05){
+            const a = Math.random()*Math.PI*2;
+            Body.setVelocity(f.body, {x:Math.cos(a)*speedFloor, y:Math.sin(a)*speedFloor});
+          } else {
+            const s = speedFloor/sp;
+            Body.setVelocity(f.body, {x:v.x*s, y:v.y*s});
+          }
+        }
+      });
       activeFighters.forEach(f=>{
         if(!f.alive) return;
         if(isDuel) checkRingOut(f); else containFighter(f);
