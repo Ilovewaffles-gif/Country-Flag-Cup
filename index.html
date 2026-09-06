@@ -659,15 +659,22 @@
         // Two equal-mass bodies bouncing off each other naturally split the
         // push evenly, so both fighters flew outward by the same amount and
         // reached the wall at the same time — a decisive one-sided exchange
-        // never happened. For duels, randomize how the SAME total push is
-        // divided between the two (same total energy, uneven split) so one
-        // fighter often gets launched much further than the other. Rumbles
-        // keep the original even split.
+        // never happened. For duels, randomize how the push is divided
+        // between the two so one fighter usually gets launched further than
+        // the other. Each side stays between 35% and 100% of the original
+        // kb — never MORE than a symmetric hit would have given either
+        // fighter, only less on one side, so this doesn't add extra speed
+        // on top of the existing tuning. Rumbles keep the original even
+        // split entirely.
         let kbA = kb, kbB = kb;
         if(isDuelHit){
-          const split = 0.15 + Math.random()*0.7; // one side gets 15-85% of the total
-          kbA = kb*2*split;
-          kbB = kb*2*(1-split);
+          const split = Math.random();
+          kbA = kb * (0.35 + 0.65*split);
+          kbB = kb * (0.35 + 0.65*(1-split));
+          // Freeze both fighters at the point of contact for a beat before
+          // the knockback sends them flying, so the hit actually reads as
+          // a connection rather than something that happened off-camera.
+          hitStopUntil = performance.now() + 40 + speedFrac*45;
         }
         pendingKnockbacks.push({ bodyA: pair.bodyA, bodyB: pair.bodyB, normal, kbA, kbB });
       }
@@ -956,12 +963,21 @@
   }
 
   let lastTime = performance.now();
+  let hitStopUntil = 0; // performance.now() timestamp — see collision handler below
   function loop(now){
     const dt = Math.min(0.033, (now-lastTime)/1000);
     lastTime = now;
 
-    if(matchRunning){
-      const isDuel = activeFighters.length === 2;
+    const isDuel = activeFighters.length === 2;
+    // Hold fighters still for a couple of frames right at the moment of a
+    // duel hit. Without this, a hard hit's knockback is applied and
+    // integrated in the very same frame the collision is detected, so by
+    // the time that frame renders, the two fighters can already be well
+    // apart — the actual moment of contact never gets drawn, which is
+    // exactly why hits could look like they landed without anyone touching.
+    const frozen = matchRunning && isDuel && now < hitStopUntil;
+
+    if(matchRunning && !frozen){
       matchElapsedMs += dt*1000;
       const sdT = isDuel ? 0 : suddenDeathT();
       // Sudden death also gradually shrinks the rumble arena, herding any
@@ -990,7 +1006,7 @@
       // against an intended single-hit max of ~5). Duels get a much higher
       // ceiling since a hard duel hit is deliberately meant to rocket a
       // fighter clear across the arena.
-      const speedCap = isDuel ? 42 : 8;
+      const speedCap = isDuel ? 30 : 8;
       // Floor: a rumble fighter that's decayed to a near-standstill (e.g.
       // after drifting away from the pack) can otherwise go a long time
       // without another collision above the damage threshold, stalling the
