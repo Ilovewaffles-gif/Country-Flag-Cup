@@ -1157,7 +1157,7 @@
         showBanner(a.name.toUpperCase() + ' VS ' + b.name.toUpperCase(), name, 1400);
         sfxStart();
         announce(`Next round: ${a.name} versus ${b.name}.`);
-        await wait(1100);
+        await wait(1900);
 
         const survivors = await runMatch([a,b], 1);
         const winner = survivors[0] || a;
@@ -1174,7 +1174,7 @@
         announce(ringOutWin
           ? `${winner.name} knocks ${loser.name} out of the arena!`
           : `${winner.name} defeats ${loser.name}.`);
-        await wait(1600);
+        await wait(2400);
       }
       roundFighters = winners;
     }
