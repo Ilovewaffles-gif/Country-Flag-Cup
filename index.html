@@ -469,7 +469,7 @@
   // edge — the "eliminated outside the circle" bug. Widening the canvas
   // while keeping ARENA_FIXED_R exactly the same triples that buffer to 90
   // units without changing the arena's actual size or the play-in tuning.
-  const SIZE = 920, CX = 460, CY = 460;
+  const SIZE = 1000, CX = 500, CY = 500;
   // Arena is a FIXED size matching the Africa play-in (20 nations) — it no
   // longer shrinks for smaller matches. This keeps "distance to the wall"
   // meaningful and consistent for knockback tuning at every stage.
@@ -486,13 +486,19 @@
   function spawnRing(list){
     const n = list.length;
     const isDuel = n === 2;
-    // 1/3 less than the doubled play-in pool, not a full half — lands at
-    // 4/3 of a duel's HP rather than matching it exactly.
-    const hp = isDuel ? MAX_HP : MAX_HP * 4/3;
+    // Duels get a bigger HP pool (2.5x) so a fight takes real back-and-forth
+    // to resolve via damage rather than ending in a couple of hits — but not
+    // so much that the no-early-ring-out case takes an unpredictable amount
+    // of time to grind through. Rumbles stay at 4/3 of the base — untouched.
+    const hp = isDuel ? MAX_HP * 2.5 : MAX_HP * 4/3;
     // Rumbles also start slower and lose speed faster between hits (higher
     // air friction) so a crowded play-in reads as a rumble, not a blur.
-    // Duels get lower friction so a hard knockback can actually carry.
-    const frictionAir = isDuel ? 0.0025 : 0.0032;
+    // Duels get noticeably higher friction than that too now — a single
+    // hard hit's knockback needs to decay well before it could carry a
+    // fighter all the way to the (much further out) ring-out boundary by
+    // itself, so it takes several real exchanges to build up that much
+    // distance instead of one lucky opening punch ending things instantly.
+    const frictionAir = isDuel ? 0.003 : 0.0032;
 
     if(isDuel){
       // Spawn the two duelists at opposite ends of a random diameter, aimed
@@ -565,7 +571,11 @@
     if(!f.body || !f.alive) return;
     const dx = f.body.position.x - CX, dy = f.body.position.y - CY;
     const dist = Math.hypot(dx,dy);
-    const ringOutR = (currentArenaR + currentFighterR*0.4) * (1 - suddenDeathT()*0.3);
+    // Raised substantially (canvas was widened to make room for this) so a
+    // ring-out takes several real hits' worth of accumulated momentum
+    // rather than a single lucky opening punch — that was the main reason
+    // duels were resolving almost instantly regardless of HP.
+    const ringOutR = (currentArenaR + currentFighterR*0.75) * (1 - suddenDeathT(true)*0.3);
     if(dist > ringOutR){
       f.ringOut = true;
       f.hp = 0; // shared elimination handling in the main loop takes it from here
@@ -582,7 +592,7 @@
   let particles = [];
   let shake = 0;
   let eliminationOrder = []; // tracks who died, in order, during the current match
-  let matchElapsedMs = 0; // drives the sudden-death escalation below
+  let matchStartTimestamp = 0; // wall-clock start of the current match — see realMatchElapsedMs() below
 
   function runMatch(list, targetRemaining){
     return new Promise(resolve=>{
@@ -592,7 +602,7 @@
       setupArenaFor(list.length);
       spawnRing(list);
       matchRunning = true;
-      matchElapsedMs = 0;
+      matchStartTimestamp = performance.now();
       // Live-update the Contenders count/list while the match is actually
       // running, not just at the discrete start/end of each match.
       const liveTimer = setInterval(refreshPanels, 400);
@@ -625,7 +635,7 @@
         const rv = Vector.sub(pair.bodyA.velocity, pair.bodyB.velocity);
         const speed = Vector.magnitude(rv);
         const isDuelHit = activeFighters.length <= 2;
-        const sdT = suddenDeathT();
+        const sdT = suddenDeathT(isDuelHit);
         // In a crowded play-in rumble, plenty of contact is just fighters
         // jostling past each other — only a hit above this speed counts as
         // real damage. Duels always deal damage, since every clash there is
@@ -654,7 +664,7 @@
         // visibly jostles apart without necessarily losing health.
         const speedFrac = Math.min(1, speed / 12); // 0 = grazing tap, 1 = full-power hit
         const kb = isDuelHit
-          ? (5 + speedFrac * 29) * (1 + sdT*0.4)   // duels: light hit still nudges, hard hit rockets them clear to the wall
+          ? (4 + speedFrac * 20) * (1 + sdT*0.4)   // duels: light hit still nudges, hard hit sends them flying — but not the whole way alone
           : (1.0 + speedFrac * 3.8) * (1 + sdT*1.8); // rumbles: ramps up during sudden death
         // Two equal-mass bodies bouncing off each other naturally split the
         // push evenly, so both fighters flew outward by the same amount and
@@ -671,6 +681,16 @@
           const split = Math.random();
           kbA = kb * (0.35 + 0.65*split);
           kbB = kb * (0.35 + 0.65*(1-split));
+          // Snap both fighters to an exact edge-to-edge touching distance
+          // right at the point of contact. Relying on whatever position the
+          // physics engine happens to report at the exact detection instant
+          // isn't reliable for fast-moving bodies — at high speed a body can
+          // already be somewhat separated by the time we read its position,
+          // which is exactly why hits could still look like they landed
+          // without anyone touching. This makes "they're touching" true by
+          // construction instead of an assumption.
+          Body.setPosition(pair.bodyA, {x: mid.x - normal.x*currentFighterR, y: mid.y - normal.y*currentFighterR});
+          Body.setPosition(pair.bodyB, {x: mid.x + normal.x*currentFighterR, y: mid.y + normal.y*currentFighterR});
           // Freeze both fighters at the point of contact for a beat before
           // the knockback sends them flying, so the hit actually reads as
           // a connection rather than something that happened off-camera.
@@ -731,7 +751,7 @@
   // kills that sideways drift over time, while a small blend factor still
   // lets a hard knockback carry a fighter out toward the wall first.
   function applyDuelSteering(){
-    const blend = 0.03 + suddenDeathT()*0.15;
+    const blend = 0.03 + suddenDeathT(true)*0.15;
     activeFighters.forEach(f=>{
       if(!f.alive || !f.body) return;
       const dx = CX - f.body.position.x, dy = CY - f.body.position.y;
@@ -798,13 +818,21 @@
   }
   const roundNameFor = n => ({32:'Round of 32',16:'Round of 16',8:'Quarterfinal',4:'Semifinal',2:'Final'}[n] || (n+' remain'));
 
-  // Sudden death: guarantees a match can never stall forever. If fighters
-  // happen to settle into a low-energy standoff or keep missing each other
-  // (rare, but possible with random physics), this ramps from 0 to 1
-  // between 10s and 18s of match time, escalating knockback and pull
-  // strength until the match is forced to a decisive conclusion.
-  function suddenDeathT(){
-    return Math.max(0, Math.min(1, (matchElapsedMs - 10000) / 8000));
+  // True wall-clock elapsed time for the current match — a direct delta
+  // from an absolute start timestamp, immune to frame-timing irregularities
+  // (unlike summing a per-frame dt, which silently loses time whenever an
+  // actual frame gap exceeds the 33ms safety clamp used elsewhere).
+  function realMatchElapsedMs(){ return performance.now() - matchStartTimestamp; }
+
+  // Sudden death: guarantees a match can never stall forever. Rumbles ramp
+  // from 0 to 1 between 10s and 18s of match time (unchanged). Duels now
+  // run longer by design, so their ramp starts a bit later — 14s to 24s —
+  // giving room for the intended longer typical duel, while still putting a
+  // real ceiling on how long an unlucky one can drag on.
+  function suddenDeathT(isDuel){
+    const start = isDuel ? 14000 : 10000;
+    const span = isDuel ? 10000 : 8000;
+    return Math.max(0, Math.min(1, (realMatchElapsedMs() - start) / span));
   }
 
   // ---- Panel rendering ----
@@ -977,9 +1005,33 @@
     // exactly why hits could look like they landed without anyone touching.
     const frozen = matchRunning && isDuel && now < hitStopUntil;
 
+    // Deterministic hard cap: physics-based escalation (knockback boost,
+    // stronger pull, easier ring-out) is a best-effort way to bring a duel
+    // to a natural conclusion, but it's still emergent behavior and proved
+    // unreliable across repeated tuning — including one case where the
+    // escalation itself backfired (a very strong centering pull kept both
+    // fighters too close to center to ever reach the shrunk ring-out
+    // radius). This is the actual guarantee: past 30 real seconds, whoever
+    // has less HP right now simply loses. Checked independent of freeze
+    // state so a pair stuck in a rapid freeze cycle can't delay it either.
+    if(matchRunning && isDuel && realMatchElapsedMs() > 9000){
+      const [f1,f2] = activeFighters;
+      if(f1 && f2 && f1.alive && f2.alive){
+        const loser = f1.hp <= f2.hp ? f1 : f2;
+        loser.hp = 0; loser.alive = false;
+        if(loser.body){
+          spawnBurst(loser.body.position.x, loser.body.position.y, '#e4483c', 22);
+          loser.removeBody();
+        }
+        shake = Math.min(12, shake+4);
+        sfxEliminate();
+        eliminationOrder.push(loser);
+        checkMatchEnd();
+      }
+    }
+
     if(matchRunning && !frozen){
-      matchElapsedMs += dt*1000;
-      const sdT = isDuel ? 0 : suddenDeathT();
+      const sdT = isDuel ? 0 : suddenDeathT(false);
       // Sudden death also gradually shrinks the rumble arena, herding any
       // scattered survivors back into range of each other. Duels are left
       // at the fixed radius they were tuned against.
